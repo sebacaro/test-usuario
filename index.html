@@ -667,6 +667,51 @@
       opacity: 0.85;
     }
 
+    .scanner-modal-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .scanner-modal-layer[hidden] {
+      display: none !important;
+    }
+
+    .scanner-modal-dim {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+    }
+
+    .scanner-modal-sheet {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 360px;
+      background: var(--white);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .scanner-modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .scanner-scan-hidden .scan-line {
+      visibility: hidden;
+    }
+
     .scanner-cta {
       margin-top: 10px;
     }
@@ -755,8 +800,11 @@
     let scanQty = 1;
     /** @type {{ stop: () => void } | null} */
     let barcodeScannerSession = null;
+    /** @type {object | null} */
+    let html5ReaderInstance = null;
     let lastScannedBarcode = "";
     let scanResultHandled = false;
+    let scannerResumeCooldown = false;
 
     const appContainer = document.getElementById("app-container");
 
@@ -768,20 +816,6 @@
      */
     function formatPrice(n) {
       return "$" + n.toLocaleString("es-CL");
-    }
-
-    /**
-     * Escapa texto para insertarlo en HTML.
-     *
-     * @param {string} s - Cadena cruda.
-     * @returns {string} Texto seguro para innerHTML.
-     */
-    function escapeHtml(s) {
-      return String(s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
     }
 
     /**
@@ -802,6 +836,7 @@
      * @returns {void}
      */
     function stopBarcodeScanner() {
+      html5ReaderInstance = null;
       if (barcodeScannerSession) {
         try {
           barcodeScannerSession.stop();
@@ -1148,7 +1183,7 @@
           "<div class='scanner-header'>" +
             "<button class='back-btn' data-action='back' style='color:#fff;position:static;'>←</button>" +
             "<span>Pronto</span>" +
-            "<span class='scanner-badge'>0</span>" +
+            "<span id='scanner-header-badge' class='scanner-badge'>0</span>" +
           "</div>" +
           "<div class='scanner-main'>" +
             "<div id='scanner-reader-root' class='scanner-reader-root'></div>" +
@@ -1163,52 +1198,31 @@
           "<p class='scan-help' style='margin-top:4px;'>Apunta al código de barras del producto</p>" +
           "<div class='scanner-demo-row'><button type='button' class='scanner-demo-btn' data-action='scan-demo'>No lee el código · Continuar (demo)</button></div>" +
           "<div class='scanner-footer'>Agrega tus productos en la tienda escaneando su código...</div>" +
-        "</div>"
-      );
-    }
-
-    function renderScannerFound() {
-      const codeLine = lastScannedBarcode
-        ? "<div class='scan-code-hint'>Código leído: " + escapeHtml(lastScannedBarcode) + "</div>"
-        : "";
-      return (
-        "<div class='screen scanner-screen'>" +
-          "<div class='scanner-header'>" +
-            "<button class='back-btn' data-action='back' style='color:#fff;position:static;'>←</button>" +
-            "<span>Pronto</span>" +
-            "<span class='scanner-badge'>0</span>" +
-          "</div>" +
-          "<div class='scanner-card'>" +
-            "<article class='product-card' style='margin-bottom:12px;'>" +
-              "<div class='product-thumb' style='background:#004B93;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;'>P</div>" +
-              "<div class='product-info'><div class='product-name'>Pepsi 591cc</div><div class='product-price'>$1.100</div>" + codeLine + "</div>" +
-              "<div class='qty-controls'><button class='qty-btn'>−</button><span class='qty-value'>1</span><button class='qty-btn'>+</button></div>" +
-            "</article>" +
-            "<button class='btn-primary' data-go='scanner-added'>Agregar al carro</button>" +
-          "</div>" +
-          "<div class='scanner-footer'>Agrega tus productos en la tienda escaneando su código...</div>" +
-        "</div>"
-      );
-    }
-
-    function renderScannerAdded() {
-      return (
-        "<div class='screen scanner-screen'>" +
-          "<div class='scanner-header'>" +
-            "<button class='back-btn' data-action='back' style='color:#fff;position:static;'>←</button>" +
-            "<span>Pronto</span>" +
-            "<span class='scanner-badge alert'>1</span>" +
-          "</div>" +
-          "<div class='scanner-card'>" +
-            "<article class='product-card' style='margin-bottom:12px;'>" +
-              "<div class='product-thumb' style='background:#004B93;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;'>P</div>" +
-              "<div class='product-info'><div class='product-name'>Pepsi 591cc</div><div class='product-price'>$1.100</div></div>" +
-              "<div class='qty-controls'><button class='qty-btn'>−</button><span class='qty-value'>1</span><button class='qty-btn'>+</button></div>" +
-            "</article>" +
-            "<button class='btn-success'>✓ Agregado</button>" +
-          "</div>" +
-          "<div class='scanner-footer'>Agrega tus productos en la tienda escaneando su código..." +
-            "<div class='scanner-cta'><button class='btn-primary' data-go='cart-flow2'>Continuar al carro →</button></div>" +
+          "<div id='scanner-modal-layer' class='scanner-modal-layer' hidden>" +
+            "<div class='scanner-modal-dim' aria-hidden='true'></div>" +
+            "<div id='scanner-modal-found' class='scanner-modal-sheet'>" +
+              "<p class='scanner-modal-title'>Producto detectado</p>" +
+              "<article class='product-card' style='margin-bottom:12px;'>" +
+                "<div class='product-thumb' style='background:#004B93;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;'>P</div>" +
+                "<div class='product-info'>" +
+                  "<div class='product-name'>Pepsi 591cc</div>" +
+                  "<div class='product-price'>" + formatPrice(SCAN_PRODUCT.price) + "</div>" +
+                  "<div id='scanner-modal-code-line' class='scan-code-hint'></div>" +
+                "</div>" +
+                "<div class='qty-controls'><button type='button' class='qty-btn' tabindex='-1'>−</button><span class='qty-value'>1</span><button type='button' class='qty-btn' tabindex='-1'>+</button></div>" +
+              "</article>" +
+              "<button type='button' class='btn-primary' data-action='scanner-add-product'>Agregar al carro</button>" +
+            "</div>" +
+            "<div id='scanner-modal-added' class='scanner-modal-sheet' hidden>" +
+              "<p class='scanner-modal-title'>En tu carro</p>" +
+              "<article class='product-card' style='margin-bottom:12px;'>" +
+                "<div class='product-thumb' style='background:#004B93;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;'>P</div>" +
+                "<div class='product-info'><div class='product-name'>Pepsi 591cc</div><div class='product-price'>" + formatPrice(SCAN_PRODUCT.price) + "</div></div>" +
+                "<div class='qty-controls'><span class='qty-value'>1</span></div>" +
+              "</article>" +
+              "<button type='button' class='btn-success' style='margin-bottom:10px;'>✓ Agregado</button>" +
+              "<button type='button' class='btn-primary' data-go='cart-flow2'>Continuar al carro →</button>" +
+            "</div>" +
           "</div>" +
         "</div>"
       );
@@ -1266,6 +1280,78 @@
     }
 
     /**
+     * Muestra el modal de Pepsi sobre la vista de cámara (sin cambiar de pantalla).
+     *
+     * @param {HTMLElement} screenNode - Pantalla scanner-empty.
+     * @returns {void}
+     */
+    function showScannerProductOverlay(screenNode) {
+      const layer = screenNode.querySelector("#scanner-modal-layer");
+      const found = screenNode.querySelector("#scanner-modal-found");
+      const added = screenNode.querySelector("#scanner-modal-added");
+      const codeLine = screenNode.querySelector("#scanner-modal-code-line");
+      if (codeLine) {
+        codeLine.textContent = lastScannedBarcode ? ("Código leído: " + lastScannedBarcode) : "";
+      }
+      if (found) {
+        found.hidden = false;
+      }
+      if (added) {
+        added.hidden = true;
+      }
+      if (layer) {
+        layer.hidden = false;
+      }
+      const ui = screenNode.querySelector(".scanner-ui-overlay");
+      if (ui) {
+        ui.classList.add("scanner-scan-hidden");
+      }
+    }
+
+    /**
+     * Cierra el modal y reanuda el escaneo (html5-qrcode) si aplica.
+     *
+     * @param {HTMLElement} screenNode - Pantalla scanner-empty.
+     * @returns {void}
+     */
+    function closeScannerOverlay(screenNode) {
+      const layer = screenNode.querySelector("#scanner-modal-layer");
+      const found = screenNode.querySelector("#scanner-modal-found");
+      const added = screenNode.querySelector("#scanner-modal-added");
+      if (layer) {
+        layer.hidden = true;
+      }
+      if (found) {
+        found.hidden = false;
+      }
+      if (added) {
+        added.hidden = true;
+      }
+      const badge = screenNode.querySelector("#scanner-header-badge");
+      if (badge) {
+        badge.textContent = "0";
+        badge.classList.remove("alert");
+      }
+      const ui = screenNode.querySelector(".scanner-ui-overlay");
+      if (ui) {
+        ui.classList.remove("scanner-scan-hidden");
+      }
+      scanResultHandled = false;
+      lastScannedBarcode = "";
+      if (html5ReaderInstance && typeof html5ReaderInstance.resume === "function") {
+        scannerResumeCooldown = true;
+        try {
+          html5ReaderInstance.resume();
+        } catch (e) {
+          /* si resume falla, el usuario puede reentrar al flujo */
+        }
+        setTimeout(function () {
+          scannerResumeCooldown = false;
+        }, 900);
+      }
+    }
+
+    /**
      * Indica si conviene evitar BarcodeDetector (p. ej. Safari iOS: suele no leer EAN bien).
      *
      * @returns {boolean}
@@ -1319,13 +1405,21 @@
        * @returns {void}
        */
       function finishScan(rawValue) {
-        if (scanResultHandled) {
+        if (scannerResumeCooldown || scanResultHandled) {
           return;
         }
         scanResultHandled = true;
         lastScannedBarcode = String(rawValue || "").trim();
-        stopBarcodeScanner();
-        navigate("scanner-found", "forward");
+        if (html5ReaderInstance && typeof html5ReaderInstance.pause === "function") {
+          try {
+            html5ReaderInstance.pause(true);
+          } catch (e) {
+            stopBarcodeScanner();
+          }
+        } else {
+          stopBarcodeScanner();
+        }
+        showScannerProductOverlay(screenNode);
       }
 
       /**
@@ -1351,6 +1445,7 @@
         const libConfig =
           formatsList.length > 0 ? { formatsToSupport: formatsList, verbose: false } : { verbose: false };
         const reader = new Html5Qrcode("scanner-reader-root", libConfig);
+        html5ReaderInstance = reader;
         barcodeScannerSession = {
           stop: function () {
             reader
@@ -1514,8 +1609,6 @@
       "success-flow1": function () { return renderSuccessScreen("cart-flow1"); },
       "instructivo-flow2": renderInstructivoFlow2,
       "scanner-empty": renderScannerEmpty,
-      "scanner-found": renderScannerFound,
-      "scanner-added": renderScannerAdded,
       "cart-flow2": renderCartFlow2,
       "checkout-flow2": renderCheckoutFlow2,
       "success-flow2": function () { return renderSuccessScreen("instructivo-flow2"); }
@@ -1536,6 +1629,13 @@
         }
 
         if (target.dataset.action === "back") {
+          if (screenId === "scanner-empty") {
+            const layer = screenNode.querySelector("#scanner-modal-layer");
+            if (layer && !layer.hidden) {
+              closeScannerOverlay(screenNode);
+              return;
+            }
+          }
           goBack();
           return;
         }
@@ -1544,8 +1644,35 @@
           if (!scanResultHandled) {
             scanResultHandled = true;
             lastScannedBarcode = "demo";
-            stopBarcodeScanner();
-            navigate("scanner-found", "forward");
+            if (html5ReaderInstance && typeof html5ReaderInstance.pause === "function") {
+              try {
+                html5ReaderInstance.pause(true);
+              } catch (e) {
+                stopBarcodeScanner();
+              }
+            } else {
+              stopBarcodeScanner();
+            }
+            showScannerProductOverlay(screenNode);
+          }
+          return;
+        }
+
+        if (target.dataset.action === "scanner-add-product") {
+          if (screenId === "scanner-empty") {
+            const found = screenNode.querySelector("#scanner-modal-found");
+            const added = screenNode.querySelector("#scanner-modal-added");
+            const badge = screenNode.querySelector("#scanner-header-badge");
+            if (found) {
+              found.hidden = true;
+            }
+            if (added) {
+              added.hidden = false;
+            }
+            if (badge) {
+              badge.textContent = "1";
+              badge.classList.add("alert");
+            }
           }
           return;
         }
