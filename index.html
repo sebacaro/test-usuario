@@ -579,6 +579,38 @@
       margin-bottom: 8px;
     }
 
+    .gondola-reminder-wrap {
+      min-height: 100%;
+      background: var(--white);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 28px 22px;
+      gap: 20px;
+    }
+
+    .gondola-reminder-icon {
+      font-size: 56px;
+      line-height: 1;
+    }
+
+    .gondola-reminder-text {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.35;
+      max-width: 320px;
+    }
+
+    .gondola-reminder-hint {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 300px;
+      line-height: 1.4;
+    }
+
     .scanner-screen {
       background: #1a1a1a;
       color: var(--white);
@@ -1178,6 +1210,24 @@
             "<h1 class='success-title'>¡Aprobadísimo!</h1>" +
             "<p class='success-subtitle'>Ya está listo tu pago, prosigue a continuar</p>" +
             "<button class='btn-primary' data-go='" + nextScreen + "' style='max-width:320px;'>Continuar</button>" +
+          "</div>" +
+        "</div>"
+      );
+    }
+
+    /**
+     * Pantalla de recordatorio: retirar productos de la góndola (flujo recomendaciones).
+     *
+     * @returns {string} HTML de la pantalla.
+     */
+    function renderGondolaReminderFlow1() {
+      return (
+        "<div class='screen'>" +
+          "<div class='gondola-reminder-wrap'>" +
+            "<div class='gondola-reminder-icon' aria-hidden='true'>🛒</div>" +
+            "<p class='gondola-reminder-text'>Recuerda sacar tus productos seleccionados de la góndola</p>" +
+            "<p class='gondola-reminder-hint'>Antes de salir, retira de las estanterías lo que compraste con la app.</p>" +
+            "<button class='btn-primary' data-go='cart-flow1' style='max-width:320px;width:100%;'>Continuar</button>" +
           "</div>" +
         "</div>"
       );
@@ -1814,7 +1864,8 @@
       "cart-flow1": renderCartFlow1,
       "modal-flow1": renderModalFlow1,
       "checkout-flow1": renderCheckoutFlow1,
-      "success-flow1": function () { return renderSuccessScreen("cart-flow1"); },
+      "success-flow1": function () { return renderSuccessScreen("gondola-reminder-flow1"); },
+      "gondola-reminder-flow1": renderGondolaReminderFlow1,
       "instructivo-flow2": renderInstructivoFlow2,
       "scanner-empty": renderScannerEmpty,
       "cart-flow2": renderCartFlow2,
