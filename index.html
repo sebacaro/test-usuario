@@ -579,6 +579,41 @@
       margin-bottom: 8px;
     }
 
+    .research-timing-panel {
+      width: 100%;
+      max-width: 320px;
+      margin-top: 4px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px dashed var(--border-gray);
+      background: var(--bg-light);
+      text-align: center;
+    }
+
+    .research-timing-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      margin: 0 0 6px;
+    }
+
+    .research-timing-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 8px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .research-timing-hint {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.35;
+    }
+
     .gondola-reminder-wrap {
       min-height: 100%;
       background: var(--white);
@@ -1039,6 +1074,13 @@
     let scanResultHandled = false;
     let scannerResumeCooldown = false;
 
+    /** @type {number | null} Marca de tiempo (performance.now) al entrar al flujo desde Home. */
+    let flowResearchStartMs = null;
+    /** @type {number | null} Duración congelada en ms al llegar a la pantalla de éxito de pago. */
+    let researchFrozenDurationMs = null;
+    /** @type {'flow1' | 'flow2' | null} Flujo activo medido en esta sesión. */
+    let researchActiveFlowId = null;
+
     const appContainer = document.getElementById("app-container");
 
     /**
@@ -1061,6 +1103,92 @@
       scanQty = 1;
       lastScannedBarcode = "";
       stopBarcodeScanner();
+    }
+
+    /**
+     * Reinicia métricas de tiempo de recorrido (research). Llamar al volver a Home.
+     *
+     * @returns {void}
+     */
+    function clearFlowResearchMetrics() {
+      flowResearchStartMs = null;
+      researchFrozenDurationMs = null;
+      researchActiveFlowId = null;
+    }
+
+    /**
+     * Inicia la medición al elegir un flujo desde Home (tras el overlay de carga).
+     *
+     * @param {'flow1' | 'flow2'} flowId - Identificador del flujo.
+     * @returns {void}
+     */
+    function startFlowResearchFromHome(flowId) {
+      flowResearchStartMs = performance.now();
+      researchFrozenDurationMs = null;
+      researchActiveFlowId = flowId;
+    }
+
+    /**
+     * Si corresponde, congela la duración al llegar a la pantalla de pago exitoso.
+     *
+     * @param {string} screenId - Pantalla a la que se navega.
+     * @returns {void}
+     */
+    function maybeFreezeFlowResearchForScreen(screenId) {
+      if (researchFrozenDurationMs !== null) {
+        return;
+      }
+      if (flowResearchStartMs === null || researchActiveFlowId === null) {
+        return;
+      }
+      if (screenId === "success-flow1" && researchActiveFlowId === "flow1") {
+        researchFrozenDurationMs = Math.round(performance.now() - flowResearchStartMs);
+        flowResearchStartMs = null;
+        return;
+      }
+      if (screenId === "success-flow2" && researchActiveFlowId === "flow2") {
+        researchFrozenDurationMs = Math.round(performance.now() - flowResearchStartMs);
+        flowResearchStartMs = null;
+      }
+    }
+
+    /**
+     * Formatea milisegundos para lectura en sesión de research (español, coma decimal).
+     *
+     * @param {number | null} ms - Duración en milisegundos.
+     * @returns {string} Texto listo para mostrar o "—".
+     */
+    function formatResearchDurationMs(ms) {
+      if (ms == null || !isFinite(ms) || ms < 0) {
+        return "—";
+      }
+      var sec = ms / 1000;
+      if (sec >= 60) {
+        var m = Math.floor(sec / 60);
+        var s = Math.floor(sec % 60);
+        return m + " min " + (s < 10 ? "0" : "") + s + " s";
+      }
+      var rounded = Math.round(sec * 10) / 10;
+      var str = rounded % 1 === 0 ? String(rounded) : String(rounded).replace(".", ",");
+      return str + " s";
+    }
+
+    /**
+     * Bloque HTML con tiempo de recorrido para el moderador (solo si ya está congelado).
+     *
+     * @returns {string} Fragmento HTML o cadena vacía.
+     */
+    function renderResearchTimingPanelHtml() {
+      if (researchFrozenDurationMs === null) {
+        return "";
+      }
+      return (
+        "<div class='research-timing-panel' role='region' aria-label='Tiempo de recorrido para investigación'>" +
+          "<p class='research-timing-label'>Tiempo de recorrido</p>" +
+          "<p class='research-timing-value'>" + formatResearchDurationMs(researchFrozenDurationMs) + "</p>" +
+          "<p class='research-timing-hint'>Dato para research: anotá cuánto tardó el participante de principio a fin.</p>" +
+        "</div>"
+      );
     }
 
     /**
@@ -1351,6 +1479,11 @@
         resetAllState();
       }
       showFlowLoadingThen(function () {
+        if (dest === "cart-flow1") {
+          startFlowResearchFromHome("flow1");
+        } else if (dest === "instructivo-flow2") {
+          startFlowResearchFromHome("flow2");
+        }
         navigate(dest, "forward");
       });
     }
@@ -1368,6 +1501,7 @@
             "<div class='check-icon'>✓</div>" +
             "<h1 class='success-title'>¡Aprobadísimo!</h1>" +
             "<p class='success-subtitle'>Ya está listo tu pago, prosigue a continuar</p>" +
+            renderResearchTimingPanelHtml() +
             "<button class='btn-primary' data-go='" + nextScreen + "' style='max-width:320px;'>Continuar</button>" +
           "</div>" +
         "</div>"
@@ -1386,6 +1520,7 @@
             "<div class='gondola-reminder-icon' aria-hidden='true'>🛒</div>" +
             "<p class='gondola-reminder-text'>Recuerda sacar tus productos seleccionados de la góndola</p>" +
             "<p class='gondola-reminder-hint'>Antes de salir, retira de las estanterías lo que compraste con la app.</p>" +
+            (researchActiveFlowId === "flow1" ? renderResearchTimingPanelHtml() : "") +
             "<button class='btn-primary' data-go='cart-flow1' style='max-width:320px;width:100%;'>Continuar</button>" +
           "</div>" +
         "</div>"
@@ -1411,7 +1546,10 @@
       if (screenId === "home") {
         historyStack = [];
         resetAllState();
+        clearFlowResearchMetrics();
       }
+
+      maybeFreezeFlowResearchForScreen(screenId);
 
       const oldScreen = appContainer.querySelector(".screen:last-child");
       const nextScreen = document.createElement("div");
