@@ -667,6 +667,45 @@
       opacity: 0.85;
     }
 
+    .scanner-manual-row {
+      position: relative;
+      z-index: 6;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 12px 10px;
+      pointer-events: auto;
+    }
+
+    .scanner-manual-input {
+      flex: 1;
+      min-width: 0;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(0, 0, 0, 0.45);
+      color: var(--white);
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .scanner-manual-input::placeholder {
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .scanner-manual-ok {
+      flex: none;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 0;
+      background: var(--pronto-blue);
+      color: var(--white);
+      font-weight: 600;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
     .scanner-modal-layer {
       position: absolute;
       inset: 0;
@@ -858,7 +897,7 @@
       }
       return new Promise(function (resolve, reject) {
         const s = document.createElement("script");
-        s.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+        s.src = "https://unpkg.com/html5-qrcode@2.3.13/html5-qrcode.min.js";
         s.async = true;
         s.onload = function () { resolve(); };
         s.onerror = function () { reject(new Error("No se pudo cargar html5-qrcode")); };
@@ -1197,6 +1236,10 @@
           "<p id='scanner-status-msg' class='scan-help' style='min-height:1.3em;color:#fca5a5;'></p>" +
           "<p class='scan-help' style='margin-top:4px;'>Apunta al código de barras del producto</p>" +
           "<div class='scanner-demo-row'><button type='button' class='scanner-demo-btn' data-action='scan-demo'>No lee el código · Continuar (demo)</button></div>" +
+          "<div class='scanner-manual-row'>" +
+            "<input type='text' id='scanner-manual-input' class='scanner-manual-input' inputmode='numeric' autocomplete='off' placeholder='Código manual (si no lee la cámara)' />" +
+            "<button type='button' class='scanner-manual-ok' data-action='scanner-manual-ok'>OK</button>" +
+          "</div>" +
           "<div class='scanner-footer'>Agrega tus productos en la tienda escaneando su código...</div>" +
           "<div id='scanner-modal-layer' class='scanner-modal-layer' hidden>" +
             "<div class='scanner-modal-dim' aria-hidden='true'></div>" +
@@ -1212,16 +1255,6 @@
                 "<div class='qty-controls'><button type='button' class='qty-btn' tabindex='-1'>−</button><span class='qty-value'>1</span><button type='button' class='qty-btn' tabindex='-1'>+</button></div>" +
               "</article>" +
               "<button type='button' class='btn-primary' data-action='scanner-add-product'>Agregar al carro</button>" +
-            "</div>" +
-            "<div id='scanner-modal-added' class='scanner-modal-sheet' hidden>" +
-              "<p class='scanner-modal-title'>En tu carro</p>" +
-              "<article class='product-card' style='margin-bottom:12px;'>" +
-                "<div class='product-thumb' style='background:#004B93;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;'>P</div>" +
-                "<div class='product-info'><div class='product-name'>Pepsi 591cc</div><div class='product-price'>" + formatPrice(SCAN_PRODUCT.price) + "</div></div>" +
-                "<div class='qty-controls'><span class='qty-value'>1</span></div>" +
-              "</article>" +
-              "<button type='button' class='btn-success' style='margin-bottom:10px;'>✓ Agregado</button>" +
-              "<button type='button' class='btn-primary' data-go='cart-flow2'>Continuar al carro →</button>" +
             "</div>" +
           "</div>" +
         "</div>"
@@ -1288,16 +1321,12 @@
     function showScannerProductOverlay(screenNode) {
       const layer = screenNode.querySelector("#scanner-modal-layer");
       const found = screenNode.querySelector("#scanner-modal-found");
-      const added = screenNode.querySelector("#scanner-modal-added");
       const codeLine = screenNode.querySelector("#scanner-modal-code-line");
       if (codeLine) {
         codeLine.textContent = lastScannedBarcode ? ("Código leído: " + lastScannedBarcode) : "";
       }
       if (found) {
         found.hidden = false;
-      }
-      if (added) {
-        added.hidden = true;
       }
       if (layer) {
         layer.hidden = false;
@@ -1317,15 +1346,11 @@
     function closeScannerOverlay(screenNode) {
       const layer = screenNode.querySelector("#scanner-modal-layer");
       const found = screenNode.querySelector("#scanner-modal-found");
-      const added = screenNode.querySelector("#scanner-modal-added");
       if (layer) {
         layer.hidden = true;
       }
       if (found) {
         found.hidden = false;
-      }
-      if (added) {
-        added.hidden = true;
       }
       const badge = screenNode.querySelector("#scanner-header-badge");
       if (badge) {
@@ -1433,18 +1458,7 @@
           return;
         }
         const Html5Qrcode = window.Html5Qrcode;
-        const Fmt = window.Html5QrcodeSupportedFormats;
-        var formatsList = [];
-        if (Fmt) {
-          [Fmt.EAN_13, Fmt.EAN_8, Fmt.UPC_A, Fmt.UPC_E, Fmt.CODE_128, Fmt.CODE_39, Fmt.QR_CODE].forEach(function (code) {
-            if (typeof code === "number") {
-              formatsList.push(code);
-            }
-          });
-        }
-        const libConfig =
-          formatsList.length > 0 ? { formatsToSupport: formatsList, verbose: false } : { verbose: false };
-        const reader = new Html5Qrcode("scanner-reader-root", libConfig);
+        const reader = new Html5Qrcode("scanner-reader-root", { verbose: false });
         html5ReaderInstance = reader;
         barcodeScannerSession = {
           stop: function () {
@@ -1457,22 +1471,51 @@
           }
         };
         const scanConfig = {
-          fps: 10,
+          fps: 15,
           qrbox: function (viewfinderWidth, viewfinderHeight) {
-            const w = Math.floor(Math.min(viewfinderWidth * 0.92, 340));
-            const h = Math.floor(Math.min(viewfinderHeight * 0.45, 260));
+            const w = Math.floor(viewfinderWidth * 0.96);
+            const h = Math.floor(viewfinderHeight * 0.62);
             return { width: w, height: h };
           },
           aspectRatio: 1.777778
         };
-        await reader.start(
-          { facingMode: "environment" },
-          scanConfig,
-          function (decodedText) {
-            finishScan(decodedText);
-          },
-          function () {}
-        );
+        const onDecoded = function (decodedText) {
+          finishScan(decodedText);
+        };
+        const onFail = function () {};
+        var cameraConfig = { facingMode: "environment" };
+        try {
+          const devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length > 0) {
+            var chosen = devices[devices.length - 1];
+            var li;
+            for (li = 0; li < devices.length; li++) {
+              var lab = (devices[li].label || "").toLowerCase();
+              if (lab.indexOf("back") >= 0 || lab.indexOf("rear") >= 0 || lab.indexOf("trasera") >= 0 || lab.indexOf("environment") >= 0) {
+                chosen = devices[li];
+                break;
+              }
+            }
+            cameraConfig = { deviceId: { exact: chosen.id } };
+          }
+        } catch (gcErr) {
+          cameraConfig = { facingMode: "environment" };
+        }
+        try {
+          await reader.start(cameraConfig, scanConfig, onDecoded, onFail);
+        } catch (eFirst) {
+          try {
+            await reader.clear();
+          } catch (c0) {}
+          try {
+            await reader.start({ facingMode: "environment" }, scanConfig, onDecoded, onFail);
+          } catch (eSecond) {
+            try {
+              await reader.clear();
+            } catch (c1) {}
+            await reader.start({ facingMode: "user" }, scanConfig, onDecoded, onFail);
+          }
+        }
         setStatus("");
       }
 
@@ -1659,21 +1702,29 @@
         }
 
         if (target.dataset.action === "scanner-add-product") {
-          if (screenId === "scanner-empty") {
-            const found = screenNode.querySelector("#scanner-modal-found");
-            const added = screenNode.querySelector("#scanner-modal-added");
-            const badge = screenNode.querySelector("#scanner-header-badge");
-            if (found) {
-              found.hidden = true;
-            }
-            if (added) {
-              added.hidden = false;
-            }
-            if (badge) {
-              badge.textContent = "1";
-              badge.classList.add("alert");
-            }
+          stopBarcodeScanner();
+          navigate("cart-flow2", "forward");
+          return;
+        }
+
+        if (target.dataset.action === "scanner-manual-ok") {
+          const inp = screenNode.querySelector("#scanner-manual-input");
+          const raw = inp && inp.value ? String(inp.value).trim() : "";
+          if (raw.length < 1 || scanResultHandled) {
+            return;
           }
+          scanResultHandled = true;
+          lastScannedBarcode = raw;
+          if (html5ReaderInstance && typeof html5ReaderInstance.pause === "function") {
+            try {
+              html5ReaderInstance.pause(true);
+            } catch (e) {
+              stopBarcodeScanner();
+            }
+          } else {
+            stopBarcodeScanner();
+          }
+          showScannerProductOverlay(screenNode);
           return;
         }
 
