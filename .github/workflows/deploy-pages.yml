@@ -24,6 +24,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Requiere que en el repo ya esté activado Pages con origen "GitHub Actions"
+      # (Settings → Pages → Source → GitHub Actions → Save). Si no, este paso falla con 404.
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
@@ -34,4 +36,4 @@ jobs:
 
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

@@ -4,16 +4,19 @@ Sitio estático (un solo `index.html`). Publicación sugerida: **GitHub Pages** 
 
 ## Publicar en GitHub Pages
 
-Este repo incluye un workflow (`.github/workflows/deploy-pages.yml`) que sube el sitio estático.
+Este repo usa un workflow (`.github/workflows/deploy-pages.yml`) que despliega el sitio estático.
 
-1. Sube los cambios: `git push origin main`
-2. En GitHub, abre el repo → **Settings → Pages**.
-3. En **Build and deployment → Source**, elige **GitHub Actions** (no “Deploy from a branch” si vas a usar el workflow).
-4. Espera a que termine el workflow en la pestaña **Actions** (1–2 minutos la primera vez).
-5. La URL será: `https://TU_USUARIO.github.io/NOMBRE_DEL_REPO/`
+### Primera vez (orden importante)
 
-Si ves **404 “There isn’t a GitHub Pages site here”**, casi siempre falta el paso 2–3 o el workflow aún no ha terminado.
+1. Repo **público** (cuenta gratuita: Pages no aplica a repos privados sin plan de pago).
+2. En GitHub: **Settings → Pages → Build and deployment**.
+3. **Source** → **GitHub Actions** → **Save**.  
+   Sin este paso, el workflow falla en *Setup Pages* con `Not Found` (GitHub aún no tiene creado el sitio de Pages).
+4. **Actions** → abre el último workflow → **Re-run failed jobs** (o haz un push vacío).
+5. Cuando el job esté en verde, el sitio queda en:
+
+   `https://sebacaro.github.io/test-usuario/`
 
 ### Opción sin Actions
 
-En **Settings → Pages**, fuente **Deploy from a branch**, rama **`main`**, carpeta **`/ (root)`**, Guardar.
+**Settings → Pages** → **Deploy from a branch** → rama **`main`**, carpeta **`/ (root)`** → Save. No necesitas el workflow; GitHub publica el `index.html` solo.
