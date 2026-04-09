@@ -1774,13 +1774,12 @@
     }
 
     function renderCartFlow2() {
-      const subtotal = CART_PRODUCT.price + SCAN_PRODUCT.price;
+      const subtotal = SCAN_PRODUCT.price;
       return (
         "<div class='screen'>" +
           renderTopBar("Carro de compras", function () {}) +
           "<div class='content'>" +
             "<p class='section-label'>Mi orden</p>" +
-            renderProductCard(CART_PRODUCT, true) +
             renderProductCard(SCAN_PRODUCT, true) +
             "<div class='divider'></div>" +
           "</div>" +
@@ -1793,14 +1792,14 @@
     }
 
     function renderCheckoutFlow2() {
-      const subtotal = CART_PRODUCT.price + SCAN_PRODUCT.price;
+      const subtotal = SCAN_PRODUCT.price;
       return (
         "<div class='screen'>" +
           renderTopBar("Detalle de compra", function () {}) +
           "<div class='content'>" +
             renderCheckoutSection(
               "Tus productos",
-              "<div class='small-muted'>Estás llevando 🏪</div>" + renderProductCard(CART_PRODUCT, false) + renderProductCard(SCAN_PRODUCT, false) + "<button class='link-btn'>Cambiar</button>"
+              "<div class='small-muted'>Estás llevando 🏪</div>" + renderProductCard(SCAN_PRODUCT, false) + "<button class='link-btn'>Cambiar</button>"
             ) +
             renderCheckoutSection(
               "Método de pago",
