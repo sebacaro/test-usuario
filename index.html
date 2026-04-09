@@ -155,7 +155,14 @@
     .product-name {
       font-size: 14px;
       font-weight: 600;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
+    }
+
+    .product-detail-sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      line-height: 1.3;
     }
 
     .product-price {
@@ -332,6 +339,7 @@
     .sheet-title {
       font-size: 18px;
       font-weight: 700;
+      color: var(--copec-blue);
     }
 
     .close-btn {
@@ -355,66 +363,118 @@
     .recommend-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 12px;
     }
 
-    .recommend-card {
+    .recommend-card-v2 {
       border: 1px solid var(--border-gray);
       border-radius: 12px;
-      padding: 10px;
-      background: #fafafa;
-      min-height: 150px;
+      overflow: hidden;
+      background: var(--white);
       display: flex;
       flex-direction: column;
     }
 
-    .rec-thumb {
-      width: 40px;
-      height: 40px;
-      border-radius: 999px;
-      margin-bottom: 8px;
+    .rec-photo-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      background: #eef0f4;
     }
 
-    .rec-thumb-img {
-      width: 40px;
-      height: 40px;
-      border-radius: 999px;
-      margin-bottom: 8px;
+    .rec-cover-img {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      object-position: center;
-      flex: none;
+      display: block;
     }
 
-    .rec-name {
-      font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 6px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      min-height: 30px;
+    .rec-cover-fallback {
+      width: 100%;
+      height: 100%;
     }
 
-    .rec-price {
-      font-size: 13px;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-
-    .rec-controls {
-      margin-top: auto;
-    }
-
-    .btn-plus {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
+    .rec-plus-fab {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
       border: 0;
       background: var(--pronto-blue);
       color: var(--white);
       font-size: 20px;
+      line-height: 1;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(27, 79, 216, 0.35);
+      padding: 0;
+    }
+
+    .rec-fab-qty {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 999px;
+      padding: 4px 6px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--border-gray);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    .rec-fab-qty button {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      padding: 2px 6px;
+      color: var(--text-primary);
+    }
+
+    .rec-body {
+      padding: 10px 8px 12px;
+      text-align: left;
+    }
+
+    .rec-price-line {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .rec-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.25;
+    }
+
+    .rec-detail {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+      line-height: 1.35;
+    }
+
+    .modal-sheet-footer {
+      border-top: 1px solid var(--border-gray);
+      padding: 12px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+      background: var(--white);
+      flex-shrink: 0;
+    }
+
+    .modal-sheet-footer .subtotal-row {
+      margin-bottom: 12px;
     }
 
     .checkout-block {
@@ -839,7 +899,7 @@
 
   <script>
     const CART_PRODUCT = {
-      name: "Master Bacon Cheddar",
+      name: "Completo italiano",
       price: 6690,
       qty: 1,
       color: "#D4A574",
@@ -856,12 +916,12 @@
     };
 
     const RECOMMENDATIONS = [
-      { name: "Snack Papas Fritas", price: 5690, color: "#F5C842", image: "assets/empanadas.png" },
-      { name: "Bebida Coca-Cola 1.5L", price: 1300, color: "#CC0000", image: "assets/bebida-lata.png" },
-      { name: "KitKat", price: 900, color: "#C8102E", image: "assets/kitkat.png" },
-      { name: "Aros de Cebolla Crujientes", price: 2190, color: "#E8A020", image: "assets/aros.png" },
-      { name: "Agua Mineral 1.5L", price: 890, color: "#7BC8F6", image: "assets/bebidas.png", imagePosition: "80% center" },
-      { name: "Galletas", price: 1490, color: "#A0856A", image: "assets/empanadas.png", imagePosition: "center bottom" }
+      { name: "Empanaditas", detail: "15 unidades", price: 5690, color: "#F5C842", image: "assets/empanadas.png" },
+      { name: "Bebida 591cc", detail: "Coca-Cola / Sprite", price: 1200, color: "#CC0000", image: "assets/bebida-lata.png" },
+      { name: "KitKat", detail: "41,5 g · 4 fingers", price: 800, color: "#C8102E", image: "assets/kitkat.png" },
+      { name: "Aros de cebolla", detail: "6 unidades · crujientes", price: 2190, color: "#E8A020", image: "assets/aros.png" },
+      { name: "Bebidas surtidas", detail: "Pepsi · Kem · Crush", price: 890, color: "#7BC8F6", image: "assets/bebidas.png", imagePosition: "center" },
+      { name: "Completo italiano", detail: "Palta · tomate · mayo", price: 1490, color: "#A0856A", image: "assets/completo.png", imagePosition: "center" }
     ];
 
     let currentScreen = "home";
@@ -999,11 +1059,15 @@
         ? "<div class='qty-controls'><button class='qty-btn'>−</button><span class='qty-value'>" + product.qty + "</span><button class='qty-btn'>+</button></div>"
         : "<div class='qty-controls'><span class='qty-value'>" + product.qty + "</span></div>";
       const thumb = renderProductThumbHtml(product, "product-thumb-img");
+      const detailLine = product.detail
+        ? "<div class='product-detail-sub'>" + product.detail + "</div>"
+        : "";
       return (
         "<article class='product-card'>" +
           thumb +
           "<div class='product-info'>" +
             "<div class='product-name'>" + product.name + "</div>" +
+            detailLine +
             "<div class='product-price'>" + formatPrice(product.price) + "</div>" +
           "</div>" +
           controls +
@@ -1020,19 +1084,61 @@
      */
     function renderRecommendedCard(product, index) {
       const qty = recommendationQtys[index] || 0;
-      const controls = qty > 0
-        ? "<div class='qty-controls rec-controls'><button class='qty-btn' data-rec='minus' data-index='" + index + "'>−</button><span class='qty-value'>" + qty + "</span><button class='qty-btn' data-rec='plus' data-index='" + index + "'>+</button></div>"
-        : "<button class='btn-plus rec-controls' data-rec='plus' data-index='" + index + "'>+</button>";
-      const thumb = renderProductThumbHtml(product, "rec-thumb-img");
-
+      const pos = product.imagePosition || "center";
+      const thumb = product.image
+        ? "<img class='rec-cover-img' src='" + product.image + "' alt='' decoding='async' loading='lazy' style='object-position:" + pos + "' />"
+        : "<div class='rec-cover-fallback' style='background:" + product.color + ";'></div>";
+      const overlay = qty > 0
+        ? (
+            "<div class='rec-fab-qty'>" +
+              "<button type='button' data-rec='minus' data-index='" + index + "'>−</button>" +
+              "<span>" + qty + "</span>" +
+              "<button type='button' data-rec='plus' data-index='" + index + "'>+</button>" +
+            "</div>"
+          )
+        : "<button type='button' class='rec-plus-fab' data-rec='plus' data-index='" + index + "'>+</button>";
+      const detail = product.detail ? "<div class='rec-detail'>" + product.detail + "</div>" : "";
       return (
-        "<article class='recommend-card'>" +
-          thumb +
-          "<div class='rec-name'>" + product.name + "</div>" +
-          "<div class='rec-price'>" + formatPrice(product.price) + "</div>" +
-          controls +
+        "<article class='recommend-card-v2'>" +
+          "<div class='rec-photo-wrap'>" + thumb + overlay + "</div>" +
+          "<div class='rec-body'>" +
+            "<div class='rec-price-line'>" + formatPrice(product.price) + "</div>" +
+            "<div class='rec-title'>" + product.name + "</div>" +
+            detail +
+          "</div>" +
         "</article>"
       );
+    }
+
+    /**
+     * Actualiza grid, subtotal y texto del botón del modal sin navegar a otra pantalla.
+     *
+     * @param {HTMLElement} screenNode - Pantalla modal-flow1.
+     * @returns {void}
+     */
+    function refreshModalFlow1(screenNode) {
+      const grid = screenNode.querySelector("#modal-recommend-grid");
+      const sub = screenNode.querySelector("#modal-subtotal");
+      const btn = screenNode.querySelector("#modal-primary-btn");
+      if (grid) {
+        grid.innerHTML = RECOMMENDATIONS.map(function (item, i) {
+          return renderRecommendedCard(item, i);
+        }).join("");
+      }
+      if (sub) {
+        sub.textContent = formatPrice(flow1Subtotal());
+      }
+      if (btn) {
+        var has = false;
+        var k;
+        for (k in recommendationQtys) {
+          if (recommendationQtys[k] > 0) {
+            has = true;
+            break;
+          }
+        }
+        btn.textContent = has ? "Continuar" : "No, gracias";
+      }
     }
 
     /**
@@ -1179,6 +1285,15 @@
       const cards = RECOMMENDATIONS.map(function (item, i) {
         return renderRecommendedCard(item, i);
       }).join("");
+      var hasExtras = false;
+      var k;
+      for (k in recommendationQtys) {
+        if (recommendationQtys[k] > 0) {
+          hasExtras = true;
+          break;
+        }
+      }
+      const primaryLabel = hasExtras ? "Continuar" : "No, gracias";
 
       return (
         "<div class='screen'>" +
@@ -1188,13 +1303,12 @@
             "<header class='sheet-header'>" +
               "<div class='sheet-handle'></div>" +
               "<h2 class='sheet-title'>¿Algo más que agregar?</h2>" +
-              "<button class='close-btn' data-go='checkout-flow1'>×</button>" +
+              "<button type='button' class='close-btn' data-action='modal-dismiss' aria-label='Cerrar'>×</button>" +
             "</header>" +
-            "<div class='sheet-content'><div class='recommend-grid'>" + cards + "</div></div>" +
-            "<footer class='fixed-footer'>" +
+            "<div class='sheet-content'><div id='modal-recommend-grid' class='recommend-grid'>" + cards + "</div></div>" +
+            "<footer class='modal-sheet-footer'>" +
               "<div class='subtotal-row'><span>Subtotal</span><strong id='modal-subtotal'>" + formatPrice(flow1Subtotal()) + "</strong></div>" +
-              "<button class='btn-primary' data-go='checkout-flow1'>Continuar</button>" +
-              "<button class='btn-text' data-go='checkout-flow1'>No, gracias</button>" +
+              "<button type='button' id='modal-primary-btn' class='btn-primary' data-action='modal-confirm'>" + primaryLabel + "</button>" +
             "</footer>" +
           "</section>" +
         "</div>"
@@ -1758,6 +1872,17 @@
           return;
         }
 
+        if (target.dataset.action === "modal-confirm") {
+          navigate("checkout-flow1", "forward");
+          return;
+        }
+
+        if (target.dataset.action === "modal-dismiss") {
+          recommendationQtys = {};
+          navigate("checkout-flow1", "forward");
+          return;
+        }
+
         if (target.dataset.action === "scanner-manual-ok") {
           const inp = screenNode.querySelector("#scanner-manual-input");
           const raw = inp && inp.value ? String(inp.value).trim() : "";
@@ -1796,7 +1921,7 @@
           } else {
             recommendationQtys[index] = Math.max(0, current - 1);
           }
-          navigate("modal-flow1", "forward");
+          refreshModalFlow1(screenNode);
         }
       });
 
