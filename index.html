@@ -129,6 +129,24 @@
       flex: none;
     }
 
+    .product-thumb-img {
+      width: 58px;
+      height: 58px;
+      border-radius: 12px;
+      flex: none;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .scanner-modal-thumb {
+      width: 58px;
+      height: 58px;
+      border-radius: 999px;
+      object-fit: cover;
+      object-position: left center;
+      flex: none;
+    }
+
     .product-info {
       flex: 1;
       min-width: 0;
@@ -355,6 +373,16 @@
       height: 40px;
       border-radius: 999px;
       margin-bottom: 8px;
+    }
+
+    .rec-thumb-img {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+      object-fit: cover;
+      object-position: center;
+      flex: none;
     }
 
     .rec-name {
@@ -814,23 +842,26 @@
       name: "Master Bacon Cheddar",
       price: 6690,
       qty: 1,
-      color: "#D4A574"
+      color: "#D4A574",
+      image: "assets/completo.png"
     };
 
     const SCAN_PRODUCT = {
       name: "Pepsi 591cc",
       price: 1100,
       qty: 1,
-      color: "#004B93"
+      color: "#004B93",
+      image: "assets/bebidas.png",
+      imagePosition: "15% center"
     };
 
     const RECOMMENDATIONS = [
-      { name: "Snack Papas Fritas", price: 5690, color: "#F5C842" },
-      { name: "Bebida Coca-Cola 1.5L", price: 1300, color: "#CC0000" },
-      { name: "KitKat", price: 900, color: "#C8102E" },
-      { name: "Aros de Cebolla Crujientes", price: 2190, color: "#E8A020" },
-      { name: "Agua Mineral 1.5L", price: 890, color: "#7BC8F6" },
-      { name: "Galletas", price: 1490, color: "#A0856A" }
+      { name: "Snack Papas Fritas", price: 5690, color: "#F5C842", image: "assets/empanadas.png" },
+      { name: "Bebida Coca-Cola 1.5L", price: 1300, color: "#CC0000", image: "assets/bebida-lata.png" },
+      { name: "KitKat", price: 900, color: "#C8102E", image: "assets/kitkat.png" },
+      { name: "Aros de Cebolla Crujientes", price: 2190, color: "#E8A020", image: "assets/aros.png" },
+      { name: "Agua Mineral 1.5L", price: 890, color: "#7BC8F6", image: "assets/bebidas.png", imagePosition: "80% center" },
+      { name: "Galletas", price: 1490, color: "#A0856A", image: "assets/empanadas.png", imagePosition: "center bottom" }
     ];
 
     let currentScreen = "home";
@@ -939,6 +970,24 @@
     }
 
     /**
+     * Miniatura de producto: imagen si existe, si no color de respaldo.
+     *
+     * @param {Object} product - Producto con color e imagen opcional.
+     * @param {string} imgClass - Clase CSS para la etiqueta img.
+     * @returns {string} HTML del thumb.
+     */
+    function renderProductThumbHtml(product, imgClass) {
+      if (product.image) {
+        const pos = product.imagePosition || "center";
+        return (
+          "<img class='" + imgClass + "' src='" + product.image + "' alt='' decoding='async' loading='lazy' style='object-position:" + pos + "' />"
+        );
+      }
+      var base = imgClass.indexOf("rec") >= 0 ? "rec-thumb" : "product-thumb";
+      return "<div class='" + base + "' style='background:" + product.color + ";'></div>";
+    }
+
+    /**
      * Crea una card de producto para carrito/checkout.
      *
      * @param {Object} product - Producto con nombre, precio, qty y color.
@@ -949,9 +998,10 @@
       const controls = editable
         ? "<div class='qty-controls'><button class='qty-btn'>−</button><span class='qty-value'>" + product.qty + "</span><button class='qty-btn'>+</button></div>"
         : "<div class='qty-controls'><span class='qty-value'>" + product.qty + "</span></div>";
+      const thumb = renderProductThumbHtml(product, "product-thumb-img");
       return (
         "<article class='product-card'>" +
-          "<div class='product-thumb' style='background:" + product.color + ";'></div>" +
+          thumb +
           "<div class='product-info'>" +
             "<div class='product-name'>" + product.name + "</div>" +
             "<div class='product-price'>" + formatPrice(product.price) + "</div>" +
@@ -973,10 +1023,11 @@
       const controls = qty > 0
         ? "<div class='qty-controls rec-controls'><button class='qty-btn' data-rec='minus' data-index='" + index + "'>−</button><span class='qty-value'>" + qty + "</span><button class='qty-btn' data-rec='plus' data-index='" + index + "'>+</button></div>"
         : "<button class='btn-plus rec-controls' data-rec='plus' data-index='" + index + "'>+</button>";
+      const thumb = renderProductThumbHtml(product, "rec-thumb-img");
 
       return (
         "<article class='recommend-card'>" +
-          "<div class='rec-thumb' style='background:" + product.color + ";'></div>" +
+          thumb +
           "<div class='rec-name'>" + product.name + "</div>" +
           "<div class='rec-price'>" + formatPrice(product.price) + "</div>" +
           controls +
@@ -1246,7 +1297,7 @@
             "<div id='scanner-modal-found' class='scanner-modal-sheet'>" +
               "<p class='scanner-modal-title'>Producto detectado</p>" +
               "<article class='product-card' style='margin-bottom:12px;'>" +
-                "<div class='product-thumb' style='background:#004B93;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;'>P</div>" +
+                "<img class='scanner-modal-thumb' src='" + SCAN_PRODUCT.image + "' alt='' decoding='async' style='object-position:" + (SCAN_PRODUCT.imagePosition || "12% center") + "' />" +
                 "<div class='product-info'>" +
                   "<div class='product-name'>Pepsi 591cc</div>" +
                   "<div class='product-price'>" + formatPrice(SCAN_PRODUCT.price) + "</div>" +
