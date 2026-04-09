@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copec Pronto - Prototype</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --copec-blue: #0033A0;
+      --copec-yellow: #FFD100;
+      --pronto-blue: #1B4FD8;
+      --bg-light: #F5F6FA;
+      --text-primary: #1A1A2A;
+      --text-secondary: #6B7280;
+      --success-green: #22C55E;
+      --white: #FFFFFF;
+      --border-gray: #E5E7EB;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #1a1a2e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Inter", sans-serif;
+      color: var(--text-primary);
+      padding: 16px;
+    }
+
+    #device-shell {
+      width: 375px;
+      max-width: 100%;
+      height: 812px;
+      border-radius: 40px;
+      overflow: hidden;
+      background: var(--bg-light);
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #status-bar {
+      height: 40px;
+      background: var(--white);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 18px;
+      font-size: 12px;
+      font-weight: 600;
+      position: relative;
+      z-index: 3;
+    }
+
+    #app-container {
+      position: relative;
+      height: calc(100% - 40px);
+      overflow: hidden;
+      background: var(--bg-light);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-light);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      transition: transform 300ms ease-in-out;
+      will-change: transform;
+    }
+
+    .slide-enter-left { transform: translateX(100%); }
+    .slide-enter-right { transform: translateX(-100%); }
+    .slide-active { transform: translateX(0); }
+    .slide-exit-left { transform: translateX(-100%); }
+    .slide-exit-right { transform: translateX(100%); }
+
+    .top-bar {
+      height: 56px;
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--border-gray);
+      z-index: 2;
+    }
+
+    .back-btn {
+      position: absolute;
+      left: 14px;
+      border: 0;
+      background: transparent;
+      font-size: 24px;
+      line-height: 1;
+      color: var(--text-primary);
+      cursor: pointer;
+      padding: 6px;
+    }
+
+    .top-bar-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .content {
+      padding: 16px;
+      padding-bottom: 130px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    .product-card {
+      background: var(--white);
+      border: 1px solid var(--border-gray);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .product-thumb {
+      width: 58px;
+      height: 58px;
+      border-radius: 12px;
+      flex: none;
+    }
+
+    .product-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .product-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .product-price {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .qty-controls {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border-gray);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--white);
+    }
+
+    .qty-btn {
+      width: 30px;
+      height: 30px;
+      border: 0;
+      background: #f8fafc;
+      font-size: 16px;
+      cursor: pointer;
+      color: var(--text-primary);
+    }
+
+    .qty-value {
+      width: 28px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border-gray);
+      margin: 10px 0 14px;
+    }
+
+    .fixed-footer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--white);
+      border-top: 1px solid var(--border-gray);
+      padding: 12px 16px 18px;
+      z-index: 3;
+    }
+
+    .subtotal-row,
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .summary-row.bold {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      background: var(--pronto-blue);
+      color: var(--white);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px 16px;
+      cursor: pointer;
+    }
+
+    .btn-text {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: var(--pronto-blue);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 16px 2px;
+      cursor: pointer;
+    }
+
+    .home-screen {
+      background: var(--copec-blue);
+      color: var(--white);
+      padding: 28px 20px;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .home-logo {
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--copec-yellow);
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
+    .home-subtitle {
+      text-align: center;
+      opacity: 0.9;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .flow-card {
+      background: var(--white);
+      color: var(--copec-blue);
+      border: 0;
+      border-radius: 16px;
+      text-align: left;
+      padding: 16px;
+      cursor: pointer;
+    }
+
+    .flow-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .flow-desc {
+      font-size: 13px;
+      color: #4760a8;
+      line-height: 1.35;
+    }
+
+    .dark-overlay-bg {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 5;
+    }
+
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 70%;
+      background: var(--white);
+      border-top-left-radius: 22px;
+      border-top-right-radius: 22px;
+      z-index: 6;
+      animation: slideUp 280ms ease-out;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sheet-header {
+      padding: 10px 16px 12px;
+      border-bottom: 1px solid var(--border-gray);
+      position: relative;
+      text-align: center;
+    }
+
+    .sheet-handle {
+      width: 52px;
+      height: 5px;
+      border-radius: 999px;
+      background: #d1d5db;
+      margin: 0 auto 10px;
+    }
+
+    .sheet-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .close-btn {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      border: 0;
+      background: transparent;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+
+    .sheet-content {
+      padding: 12px;
+      overflow-y: auto;
+      flex: 1;
+      padding-bottom: 120px;
+    }
+
+    .recommend-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .recommend-card {
+      border: 1px solid var(--border-gray);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fafafa;
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .rec-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .rec-name {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 30px;
+    }
+
+    .rec-price {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .rec-controls {
+      margin-top: auto;
+    }
+
+    .btn-plus {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 0;
+      background: var(--pronto-blue);
+      color: var(--white);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .checkout-block {
+      background: var(--white);
+      border: 1px solid var(--border-gray);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .checkout-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .link-btn {
+      border: 0;
+      background: transparent;
+      color: var(--pronto-blue);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .small-muted {
+      color: var(--text-secondary);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .pay-option {
+      border: 1px solid var(--border-gray);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .dot-active {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--pronto-blue);
+      flex: none;
+    }
+
+    .badge {
+      background: #e8eefc;
+      color: var(--pronto-blue);
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 3px 7px;
+      margin-left: 6px;
+    }
+
+    .success-wrap {
+      min-height: 100%;
+      background: var(--white);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 24px;
+      gap: 14px;
+    }
+
+    .check-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 999px;
+      background: var(--success-green);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 44px;
+      font-weight: 700;
+      animation: checkPop 420ms ease-out;
+    }
+
+    .success-title {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      margin-top: 6px;
+    }
+
+    .success-subtitle {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .scanner-screen {
+      background: #1a1a1a;
+      color: var(--white);
+      min-height: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 110px;
+      background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.05), transparent 45%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.03), transparent 40%);
+    }
+
+    .scanner-main {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scanner-reader-root {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: #0f0f0f;
+    }
+
+    .scanner-reader-root video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .scanner-ui-overlay {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .scan-code-hint {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      word-break: break-all;
+    }
+
+    .scanner-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      position: relative;
+      z-index: 4;
+      flex-shrink: 0;
+    }
+
+    .scanner-badge {
+      min-width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: #334155;
+      color: var(--white);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 0 8px;
+    }
+
+    .scanner-badge.alert {
+      background: #ef4444;
+    }
+
+    .scan-frame {
+      width: 270px;
+      height: 180px;
+      margin: 0;
+      position: relative;
+      border-radius: 18px;
+    }
+
+    .scan-corners::before,
+    .scan-corners::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+    }
+
+    .scan-corners {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background:
+        linear-gradient(#fff, #fff) left top / 28px 3px no-repeat,
+        linear-gradient(#fff, #fff) left top / 3px 28px no-repeat,
+        linear-gradient(#fff, #fff) right top / 28px 3px no-repeat,
+        linear-gradient(#fff, #fff) right top / 3px 28px no-repeat,
+        linear-gradient(#fff, #fff) left bottom / 28px 3px no-repeat,
+        linear-gradient(#fff, #fff) left bottom / 3px 28px no-repeat,
+        linear-gradient(#fff, #fff) right bottom / 28px 3px no-repeat,
+        linear-gradient(#fff, #fff) right bottom / 3px 28px no-repeat;
+    }
+
+    .scan-line {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      height: 2px;
+      top: 10%;
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+      animation: scanLine 1.8s linear infinite;
+    }
+
+    .scan-help {
+      text-align: center;
+      margin-top: 26px;
+      font-size: 14px;
+      padding: 0 18px;
+    }
+
+    .scanner-card {
+      background: var(--white);
+      color: var(--text-primary);
+      border-radius: 16px;
+      width: calc(100% - 36px);
+      margin: 130px auto 0;
+      padding: 14px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+    }
+
+    .scanner-footer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 5;
+      background: rgba(0, 0, 0, 0.62);
+      padding: 12px 16px 18px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.88);
+      line-height: 1.4;
+    }
+
+    .scanner-cta {
+      margin-top: 10px;
+    }
+
+    .btn-success {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      background: var(--success-green);
+      color: var(--white);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px 16px;
+      cursor: pointer;
+    }
+
+    .instruct-svg {
+      margin: 30px auto 20px;
+      display: block;
+      width: 170px;
+      height: 170px;
+    }
+
+    .instruct-title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    .instruct-sub {
+      text-align: center;
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+    }
+
+    @keyframes scanLine {
+      0% { top: 10%; }
+      50% { top: 85%; }
+      100% { top: 10%; }
+    }
+
+    @keyframes checkPop {
+      0% { transform: scale(0); opacity: 0; }
+      70% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div id="device-shell">
+    <div id="status-bar">
+      <span>9:41</span>
+      <span>••• 📶 🔋</span>
+    </div>
+    <div id="app-container"></div>
+  </div>
+
+  <script>
+    const CART_PRODUCT = {
+      name: "Master Bacon Cheddar",
+      price: 6690,
+      qty: 1,
+      color: "#D4A574"
+    };
+
+    const SCAN_PRODUCT = {
+      name: "Pepsi 591cc",
+      price: 1100,
+      qty: 1,
+      color: "#004B93"
+    };
+
+    const RECOMMENDATIONS = [
+      { name: "Snack Papas Fritas", price: 5690, color: "#F5C842" },
+      { name: "Bebida Coca-Cola 1.5L", price: 1300, color: "#CC0000" },
+      { name: "KitKat", price: 900, color: "#C8102E" },
+      { name: "Aros de Cebolla Crujientes", price: 2190, color: "#E8A020" },
+      { name: "Agua Mineral 1.5L", price: 890, color: "#7BC8F6" },
+      { name: "Galletas", price: 1490, color: "#A0856A" }
+    ];
+
+    let currentScreen = "home";
+    let historyStack = [];
+    let recommendationQtys = {};
+    let scanQty = 1;
+    /** @type {{ stop: () => void } | null} */
+    let barcodeScannerSession = null;
+    let lastScannedBarcode = "";
+    let scanResultHandled = false;
+
+    const appContainer = document.getElementById("app-container");
+
+    /**
+     * Formatea un precio en CLP con separador local.
+     *
+     * @param {number} n - Monto numérico a formatear.
+     * @returns {string} Monto en formato "$6.690".
+     */
+    function formatPrice(n) {
+      return "$" + n.toLocaleString("es-CL");
+    }
+
+    /**
+     * Escapa texto para insertarlo en HTML.
+     *
+     * @param {string} s - Cadena cruda.
+     * @returns {string} Texto seguro para innerHTML.
+     */
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    /**
+     * Reinicia todo el estado dinámico del prototipo.
+     *
+     * @returns {void} No retorna valor.
+     */
+    function resetAllState() {
+      recommendationQtys = {};
+      scanQty = 1;
+      lastScannedBarcode = "";
+      stopBarcodeScanner();
+    }
+
+    /**
+     * Detiene cámara y lectores de código activos.
+     *
+     * @returns {void}
+     */
+    function stopBarcodeScanner() {
+      if (barcodeScannerSession) {
+        try {
+          barcodeScannerSession.stop();
+        } catch (e) {
+          /* ignore */
+        }
+        barcodeScannerSession = null;
+      }
+    }
+
+    /**
+     * Carga html5-qrcode desde CDN (fallback si no hay BarcodeDetector).
+     *
+     * @returns {Promise<void>}
+     */
+    function loadHtml5QrcodeScript() {
+      if (window.Html5Qrcode) {
+        return Promise.resolve();
+      }
+      return new Promise(function (resolve, reject) {
+        const s = document.createElement("script");
+        s.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+        s.async = true;
+        s.onload = function () { resolve(); };
+        s.onerror = function () { reject(new Error("No se pudo cargar html5-qrcode")); };
+        document.head.appendChild(s);
+      });
+    }
+
+    /**
+     * Entrega productos recomendados con cantidad seleccionada.
+     *
+     * @returns {Array} Lista de productos agregados en modal.
+     */
+    function getSelectedExtras() {
+      return RECOMMENDATIONS
+        .map((item, idx) => ({ ...item, qty: recommendationQtys[idx] || 0 }))
+        .filter((item) => item.qty > 0);
+    }
+
+    /**
+     * Calcula el subtotal del flujo 1 considerando extras.
+     *
+     * @returns {number} Subtotal actualizado.
+     */
+    function flow1Subtotal() {
+      const extrasTotal = getSelectedExtras().reduce((sum, item) => sum + item.price * item.qty, 0);
+      return CART_PRODUCT.price + extrasTotal;
+    }
+
+    /**
+     * Crea una barra superior con título y botón back opcional.
+     *
+     * @param {string} title - Título principal.
+     * @param {Function|null} onBack - Callback al presionar atrás.
+     * @returns {string} HTML de la barra superior.
+     */
+    function renderTopBar(title, onBack) {
+      const backButton = onBack ? "<button class='back-btn' data-action='back'>←</button>" : "";
+      return "<div class='top-bar'>" + backButton + "<div class='top-bar-title'>" + title + "</div></div>";
+    }
+
+    /**
+     * Crea una card de producto para carrito/checkout.
+     *
+     * @param {Object} product - Producto con nombre, precio, qty y color.
+     * @param {boolean} editable - Define si muestra controles activos.
+     * @returns {string} HTML de card de producto.
+     */
+    function renderProductCard(product, editable) {
+      const controls = editable
+        ? "<div class='qty-controls'><button class='qty-btn'>−</button><span class='qty-value'>" + product.qty + "</span><button class='qty-btn'>+</button></div>"
+        : "<div class='qty-controls'><span class='qty-value'>" + product.qty + "</span></div>";
+      return (
+        "<article class='product-card'>" +
+          "<div class='product-thumb' style='background:" + product.color + ";'></div>" +
+          "<div class='product-info'>" +
+            "<div class='product-name'>" + product.name + "</div>" +
+            "<div class='product-price'>" + formatPrice(product.price) + "</div>" +
+          "</div>" +
+          controls +
+        "</article>"
+      );
+    }
+
+    /**
+     * Crea una card de producto recomendado con controles dinámicos.
+     *
+     * @param {Object} product - Producto recomendado.
+     * @param {number} index - Posición del producto.
+     * @returns {string} HTML de card recomendada.
+     */
+    function renderRecommendedCard(product, index) {
+      const qty = recommendationQtys[index] || 0;
+      const controls = qty > 0
+        ? "<div class='qty-controls rec-controls'><button class='qty-btn' data-rec='minus' data-index='" + index + "'>−</button><span class='qty-value'>" + qty + "</span><button class='qty-btn' data-rec='plus' data-index='" + index + "'>+</button></div>"
+        : "<button class='btn-plus rec-controls' data-rec='plus' data-index='" + index + "'>+</button>";
+
+      return (
+        "<article class='recommend-card'>" +
+          "<div class='rec-thumb' style='background:" + product.color + ";'></div>" +
+          "<div class='rec-name'>" + product.name + "</div>" +
+          "<div class='rec-price'>" + formatPrice(product.price) + "</div>" +
+          controls +
+        "</article>"
+      );
+    }
+
+    /**
+     * Renderiza un bloque de checkout con separador visual.
+     *
+     * @param {string} title - Encabezado de sección.
+     * @param {string} content - HTML interior del bloque.
+     * @returns {string} HTML de sección.
+     */
+    function renderCheckoutSection(title, content) {
+      return "<section class='checkout-block'><div class='checkout-title'><span>" + title + "</span></div>" + content + "</section>";
+    }
+
+    /**
+     * Crea una fila del resumen de precios.
+     *
+     * @param {string} label - Etiqueta de la fila.
+     * @param {string} value - Valor formateado.
+     * @param {boolean} bold - Define estilo destacado.
+     * @returns {string} HTML de fila resumen.
+     */
+    function renderSummaryRow(label, value, bold) {
+      return "<div class='summary-row" + (bold ? " bold" : "") + "'><span>" + label + "</span><span>" + value + "</span></div>";
+    }
+
+    /**
+     * Renderiza la pantalla de éxito reutilizable.
+     *
+     * @param {string} nextScreen - Pantalla de destino al continuar.
+     * @returns {string} HTML de éxito.
+     */
+    function renderSuccessScreen(nextScreen) {
+      return (
+        "<div class='screen'>" +
+          "<div class='success-wrap'>" +
+            "<div class='check-icon'>✓</div>" +
+            "<h1 class='success-title'>¡Aprobadísimo!</h1>" +
+            "<p class='success-subtitle'>Ya está listo tu pago, prosigue a continuar</p>" +
+            "<button class='btn-primary' data-go='" + nextScreen + "' style='max-width:320px;'>Continuar</button>" +
+          "</div>" +
+        "</div>"
+      );
+    }
+
+    /**
+     * Navega entre pantallas usando transición horizontal.
+     *
+     * @param {string} screenId - Identificador de pantalla.
+     * @param {'forward'|'back'} direction - Sentido de navegación.
+     * @returns {void} No retorna valor.
+     */
+    function navigate(screenId, direction) {
+      const navDirection = direction || "forward";
+      const renderFn = renderers[screenId];
+      if (!renderFn) {
+        return;
+      }
+
+      stopBarcodeScanner();
+
+      if (screenId === "home") {
+        historyStack = [];
+        resetAllState();
+      }
+
+      const oldScreen = appContainer.querySelector(".screen:last-child");
+      const nextScreen = document.createElement("div");
+      nextScreen.className = "screen " + (navDirection === "forward" ? "slide-enter-left" : "slide-enter-right");
+      nextScreen.innerHTML = renderFn();
+      appContainer.appendChild(nextScreen);
+
+      requestAnimationFrame(function () {
+        nextScreen.classList.add("slide-active");
+        nextScreen.classList.remove("slide-enter-left", "slide-enter-right");
+        if (oldScreen) {
+          oldScreen.classList.add(navDirection === "forward" ? "slide-exit-left" : "slide-exit-right");
+        }
+      });
+
+      setTimeout(function () {
+        if (oldScreen && oldScreen.parentNode) {
+          oldScreen.parentNode.removeChild(oldScreen);
+        }
+      }, 300);
+
+      if (navDirection === "forward" && currentScreen !== screenId) {
+        historyStack.push(currentScreen);
+      }
+      currentScreen = screenId;
+      wireScreenEvents(nextScreen, screenId);
+    }
+
+    /**
+     * Vuelve a la pantalla anterior según historial.
+     *
+     * @returns {void} No retorna valor.
+     */
+    function goBack() {
+      const prev = historyStack.pop();
+      if (!prev) {
+        navigate("home", "back");
+        return;
+      }
+      navigate(prev, "back");
+    }
+
+    function renderHome() {
+      return (
+        "<div class='screen'>" +
+          "<div class='home-screen'>" +
+            "<div class='home-logo'>COPEC</div>" +
+            "<p class='home-subtitle'>App Pronto - Prototype</p>" +
+            "<button class='flow-card' data-go='cart-flow1'>" +
+              "<div class='flow-title'>Flujo 1: Recomendaciones</div>" +
+              "<div class='flow-desc'>Carrito → Modal recomendaciones → Pago</div>" +
+            "</button>" +
+            "<button class='flow-card' data-go='instructivo-flow2'>" +
+              "<div class='flow-title'>Flujo 2: Escanear producto</div>" +
+              "<div class='flow-desc'>Escanear → Agregar → Pago</div>" +
+            "</button>" +
+          "</div>" +
+        "</div>"
+      );
+    }
+
+    function renderCartFlow1() {
+      return (
+        "<div class='screen'>" +
+          renderTopBar("Carro de compras", function () {}) +
+          "<div class='content'>" +
+            "<p class='section-label'>Mi orden</p>" +
+            renderProductCard(CART_PRODUCT, true) +
+            "<div class='divider'></div>" +
+          "</div>" +
+          "<div class='fixed-footer'>" +
+            "<div class='subtotal-row'><span>Subtotal</span><strong>" + formatPrice(CART_PRODUCT.price) + "</strong></div>" +
+            "<button class='btn-primary' data-go='modal-flow1'>Continuar</button>" +
+          "</div>" +
+        "</div>"
+      );
+    }
+
+    function renderModalFlow1() {
+      const cards = RECOMMENDATIONS.map(function (item, i) {
+        return renderRecommendedCard(item, i);
+      }).join("");
+
+      return (
+        "<div class='screen'>" +
+          renderCartFlow1Base() +
+          "<div class='dark-overlay-bg'></div>" +
+          "<section class='sheet'>" +
+            "<header class='sheet-header'>" +
+              "<div class='sheet-handle'></div>" +
+              "<h2 class='sheet-title'>¿Algo más que agregar?</h2>" +
+              "<button class='close-btn' data-go='checkout-flow1'>×</button>" +
+            "</header>" +
+            "<div class='sheet-content'><div class='recommend-grid'>" + cards + "</div></div>" +
+            "<footer class='fixed-footer'>" +
+              "<div class='subtotal-row'><span>Subtotal</span><strong id='modal-subtotal'>" + formatPrice(flow1Subtotal()) + "</strong></div>" +
+              "<button class='btn-primary' data-go='checkout-flow1'>Continuar</button>" +
+              "<button class='btn-text' data-go='checkout-flow1'>No, gracias</button>" +
+            "</footer>" +
+          "</section>" +
+        "</div>"
+      );
+    }
+
+    function renderCartFlow1Base() {
+      return (
+        renderTopBar("Carro de compras", function () {}) +
+        "<div class='content'>" +
+          "<p class='section-label'>Mi orden</p>" +
+          renderProductCard(CART_PRODUCT, false) +
+        "</div>"
+      );
+    }
+
+    function renderCheckoutFlow1() {
+      const items = [CART_PRODUCT].concat(getSelectedExtras());
+      const subtotal = flow1Subtotal();
+      const productList = items.map(function (item) {
+        return renderProductCard(item, false);
+      }).join("");
+
+      return (
+        "<div class='screen'>" +
+          renderTopBar("Detalle de compra", function () {}) +
+          "<div class='content'>" +
+            renderCheckoutSection(
+              "Tus productos",
+              "<div class='small-muted'>Estás llevando 🚚</div>" + productList + "<button class='link-btn'>Cambiar</button>"
+            ) +
+            renderCheckoutSection(
+              "Método de pago",
+              "<div class='pay-option'><span>💳 40% antes de puntos Full... <span class='badge'>COPEC PAY</span></span></div>" +
+              "<div class='pay-option'><span>🏦 BancoEstado</span><span class='dot-active'></span></div>" +
+              "<button class='link-btn'>Cambiar</button>"
+            ) +
+            renderCheckoutSection(
+              "Selecciona un cupón",
+              "<button class='link-btn'>¿Tienes un código?</button><p class='small-muted' style='margin-top:8px;'>No tienes cupones disponibles. Revisa los descuentos disponibles en tu perfil.</p>"
+            ) +
+            renderCheckoutSection(
+              "Resumen",
+              renderSummaryRow("Subtotal", formatPrice(subtotal), false) +
+              renderSummaryRow("Descuento cupón", "$0", false) +
+              renderSummaryRow("Total", formatPrice(subtotal), true)
+            ) +
+          "</div>" +
+          "<div class='fixed-footer'><button class='btn-primary' data-go='success-flow1'>Pagar " + formatPrice(subtotal) + "</button></div>" +
+        "</div>"
+      );
+    }
+
+    function renderInstructivoFlow2() {
+      return (
+        "<div class='screen'>" +
+          renderTopBar("Escanear...", function () {}) +
+          "<div class='content'>" +
+            "<svg class='instruct-svg' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'>" +
+              "<rect x='56' y='26' width='88' height='148' rx='16' fill='#dbe7ff' stroke='#1B4FD8' stroke-width='4'/>" +
+              "<rect x='70' y='48' width='60' height='92' rx='8' fill='#ffffff'/>" +
+              "<circle cx='100' cy='157' r='6' fill='#1B4FD8'/>" +
+              "<path d='M20 84h20M160 84h20M28 58l18 10M172 58l-18 10' stroke='#6B7280' stroke-width='4' stroke-linecap='round'/>" +
+            "</svg>" +
+            "<h1 class='instruct-title'>Para llevar este producto, escanealo en la tienda</h1>" +
+            "<p class='instruct-sub'>Luego del límite a pagar</p>" +
+          "</div>" +
+          "<div class='fixed-footer'><button class='btn-primary' data-go='scanner-empty'>Escanear producto</button></div>" +
+        "</div>"
+      );
+    }
+
+    function renderScannerEmpty() {
+      return (
+        "<div class='screen scanner-screen'>" +
+          "<div class='scanner-header'>" +
+            "<button class='back-btn' data-action='back' style='color:#fff;position:static;'>←</button>" +
+            "<span>Pronto</span>" +
+            "<span class='scanner-badge'>0</span>" +
+          "</div>" +
+          "<div class='scanner-main'>" +
+            "<div id='scanner-reader-root' class='scanner-reader-root'></div>" +
+            "<div class='scanner-ui-overlay'>" +
+              "<div class='scan-frame'>" +
+                "<div class='scan-corners'></div>" +
+                "<div class='scan-line'></div>" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+          "<p id='scanner-status-msg' class='scan-help' style='min-height:1.3em;color:#fca5a5;'></p>" +
+          "<p class='scan-help' style='margin-top:4px;'>Apunta al código de barras del producto</p>" +
+          "<div class='scanner-footer'>Agrega tus productos en la tienda escaneando su código...</div>" +
+        "</div>"
+      );
+    }
+
+    function renderScannerFound() {
+      const codeLine = lastScannedBarcode
+        ? "<div class='scan-code-hint'>Código leído: " + escapeHtml(lastScannedBarcode) + "</div>"
+        : "";
+      return (
+        "<div class='screen scanner-screen'>" +
+          "<div class='scanner-header'>" +
+            "<button class='back-btn' data-action='back' style='color:#fff;position:static;'>←</button>" +
+            "<span>Pronto</span>" +
+            "<span class='scanner-badge'>0</span>" +
+          "</div>" +
+          "<div class='scanner-card'>" +
+            "<article class='product-card' style='margin-bottom:12px;'>" +
+              "<div class='product-thumb' style='background:#004B93;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;'>P</div>" +
+              "<div class='product-info'><div class='product-name'>Pepsi 591cc</div><div class='product-price'>$1.100</div>" + codeLine + "</div>" +
+              "<div class='qty-controls'><button class='qty-btn'>−</button><span class='qty-value'>1</span><button class='qty-btn'>+</button></div>" +
+            "</article>" +
+            "<button class='btn-primary' data-go='scanner-added'>Agregar al carro</button>" +
+          "</div>" +
+          "<div class='scanner-footer'>Agrega tus productos en la tienda escaneando su código...</div>" +
+        "</div>"
+      );
+    }
+
+    function renderScannerAdded() {
+      return (
+        "<div class='screen scanner-screen'>" +
+          "<div class='scanner-header'>" +
+            "<button class='back-btn' data-action='back' style='color:#fff;position:static;'>←</button>" +
+            "<span>Pronto</span>" +
+            "<span class='scanner-badge alert'>1</span>" +
+          "</div>" +
+          "<div class='scanner-card'>" +
+            "<article class='product-card' style='margin-bottom:12px;'>" +
+              "<div class='product-thumb' style='background:#004B93;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;'>P</div>" +
+              "<div class='product-info'><div class='product-name'>Pepsi 591cc</div><div class='product-price'>$1.100</div></div>" +
+              "<div class='qty-controls'><button class='qty-btn'>−</button><span class='qty-value'>1</span><button class='qty-btn'>+</button></div>" +
+            "</article>" +
+            "<button class='btn-success'>✓ Agregado</button>" +
+          "</div>" +
+          "<div class='scanner-footer'>Agrega tus productos en la tienda escaneando su código..." +
+            "<div class='scanner-cta'><button class='btn-primary' data-go='cart-flow2'>Continuar al carro →</button></div>" +
+          "</div>" +
+        "</div>"
+      );
+    }
+
+    function renderCartFlow2() {
+      const subtotal = CART_PRODUCT.price + SCAN_PRODUCT.price;
+      return (
+        "<div class='screen'>" +
+          renderTopBar("Carro de compras", function () {}) +
+          "<div class='content'>" +
+            "<p class='section-label'>Mi orden</p>" +
+            renderProductCard(CART_PRODUCT, true) +
+            renderProductCard(SCAN_PRODUCT, true) +
+            "<div class='divider'></div>" +
+          "</div>" +
+          "<div class='fixed-footer'>" +
+            "<div class='subtotal-row'><span>Subtotal</span><strong>" + formatPrice(subtotal) + "</strong></div>" +
+            "<button class='btn-primary' data-go='checkout-flow2'>Continuar</button>" +
+          "</div>" +
+        "</div>"
+      );
+    }
+
+    function renderCheckoutFlow2() {
+      const subtotal = CART_PRODUCT.price + SCAN_PRODUCT.price;
+      return (
+        "<div class='screen'>" +
+          renderTopBar("Detalle de compra", function () {}) +
+          "<div class='content'>" +
+            renderCheckoutSection(
+              "Tus productos",
+              "<div class='small-muted'>Estás llevando 🏪</div>" + renderProductCard(CART_PRODUCT, false) + renderProductCard(SCAN_PRODUCT, false) + "<button class='link-btn'>Cambiar</button>"
+            ) +
+            renderCheckoutSection(
+              "Método de pago",
+              "<div class='pay-option'><span>💳 40% antes de puntos Full... <span class='badge'>COPEC PAY</span></span></div>" +
+              "<div class='pay-option'><span>🏦 BancoEstado</span><span class='dot-active'></span></div>" +
+              "<button class='link-btn'>Cambiar</button>"
+            ) +
+            renderCheckoutSection(
+              "Selecciona un cupón",
+              "<button class='link-btn'>¿Tienes un código?</button><p class='small-muted' style='margin-top:8px;'>No tienes cupones disponibles. Revisa los descuentos disponibles en tu perfil.</p>"
+            ) +
+            renderCheckoutSection(
+              "Resumen",
+              renderSummaryRow("Subtotal", formatPrice(subtotal), false) +
+              renderSummaryRow("Descuento cupón", "$0", false) +
+              renderSummaryRow("Total", formatPrice(subtotal), true)
+            ) +
+          "</div>" +
+          "<div class='fixed-footer'><button class='btn-primary' data-go='success-flow2'>Pagar " + formatPrice(subtotal) + "</button></div>" +
+        "</div>"
+      );
+    }
+
+    /**
+     * Inicia cámara y lectura de códigos (BarcodeDetector o html5-qrcode).
+     *
+     * @param {HTMLElement} screenNode - Pantalla scanner-empty montada.
+     * @returns {Promise<void>}
+     */
+    async function startScannerEmptyScreen(screenNode) {
+      scanResultHandled = false;
+      const root = screenNode.querySelector("#scanner-reader-root");
+      const statusEl = screenNode.querySelector("#scanner-status-msg");
+      if (!root) {
+        return;
+      }
+
+      /**
+       * Muestra mensaje de estado bajo la vista de cámara.
+       *
+       * @param {string} msg - Texto a mostrar.
+       * @returns {void}
+       */
+      function setStatus(msg) {
+        if (statusEl) {
+          statusEl.textContent = msg || "";
+        }
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setStatus("Tu navegador no permite usar la cámara desde aquí.");
+        return;
+      }
+
+      /**
+       * Cierra escaneo y avanza al producto encontrado (prototipo: siempre Pepsi).
+       *
+       * @param {string} rawValue - Valor decodificado del código.
+       * @returns {void}
+       */
+      function finishScan(rawValue) {
+        if (scanResultHandled) {
+          return;
+        }
+        scanResultHandled = true;
+        lastScannedBarcode = String(rawValue || "").trim();
+        stopBarcodeScanner();
+        navigate("scanner-found", "forward");
+      }
+
+      if ("BarcodeDetector" in window) {
+        try {
+          let detector;
+          try {
+            detector = new BarcodeDetector({
+              formats: ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e", "qr_code"]
+            });
+          } catch (eFmt) {
+            detector = new BarcodeDetector();
+          }
+
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } }
+          });
+          if (!screenNode.isConnected) {
+            stream.getTracks().forEach(function (t) {
+              t.stop();
+            });
+            return;
+          }
+          const video = document.createElement("video");
+          video.setAttribute("playsinline", "");
+          video.setAttribute("muted", "");
+          video.muted = true;
+          video.playsInline = true;
+          video.style.cssText = "width:100%;height:100%;object-fit:cover;";
+          root.appendChild(video);
+          video.srcObject = stream;
+          await video.play();
+          if (!screenNode.isConnected) {
+            stream.getTracks().forEach(function (t) {
+              t.stop();
+            });
+            root.innerHTML = "";
+            return;
+          }
+
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          let rafId = 0;
+          let stopped = false;
+          let lastDetectTs = 0;
+
+          barcodeScannerSession = {
+            stop: function () {
+              stopped = true;
+              if (rafId) {
+                cancelAnimationFrame(rafId);
+              }
+              stream.getTracks().forEach(function (t) {
+                t.stop();
+              });
+              video.srcObject = null;
+              root.innerHTML = "";
+            }
+          };
+
+          /**
+           * Procesa frames de video buscando un código de barras o QR.
+           *
+           * @returns {void}
+           */
+          function tick() {
+            if (stopped) {
+              return;
+            }
+            if (video.readyState < 2) {
+              rafId = requestAnimationFrame(tick);
+              return;
+            }
+            const n = performance.now();
+            if (n - lastDetectTs < 90) {
+              rafId = requestAnimationFrame(tick);
+              return;
+            }
+            lastDetectTs = n;
+            try {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              ctx.drawImage(video, 0, 0);
+            } catch (eDraw) {
+              rafId = requestAnimationFrame(tick);
+              return;
+            }
+            detector.detect(canvas).then(function (codes) {
+              if (stopped) {
+                return;
+              }
+              if (codes && codes.length) {
+                const c = codes[0];
+                const raw = c.rawValue != null ? c.rawValue : (c.value || "");
+                if (raw) {
+                  finishScan(raw);
+                  return;
+                }
+              }
+              rafId = requestAnimationFrame(tick);
+            }).catch(function () {
+              if (!stopped) {
+                rafId = requestAnimationFrame(tick);
+              }
+            });
+          }
+
+          setStatus("");
+          tick();
+          return;
+        } catch (e1) {
+          root.innerHTML = "";
+          setStatus("Iniciando escáner alternativo…");
+        }
+      }
+
+      try {
+        await loadHtml5QrcodeScript();
+        if (!screenNode.isConnected) {
+          return;
+        }
+        const Html5Qrcode = window.Html5Qrcode;
+        const reader = new Html5Qrcode("scanner-reader-root", { verbose: false });
+        barcodeScannerSession = {
+          stop: function () {
+            reader
+              .stop()
+              .then(function () {
+                return reader.clear();
+              })
+              .catch(function () {});
+          }
+        };
+        await reader.start(
+          { facingMode: "environment" },
+          { fps: 8, qrbox: { width: 260, height: 170 } },
+          function (decodedText) {
+            finishScan(decodedText);
+          },
+          function () {}
+        );
+        setStatus("");
+      } catch (e2) {
+        barcodeScannerSession = null;
+        setStatus(
+          "No se pudo usar la cámara. Permite el acceso o abre la página por HTTPS o http://127.0.0.1 (file:// suele bloquear la cámara)."
+        );
+      }
+    }
+
+    const renderers = {
+      "home": renderHome,
+      "cart-flow1": renderCartFlow1,
+      "modal-flow1": renderModalFlow1,
+      "checkout-flow1": renderCheckoutFlow1,
+      "success-flow1": function () { return renderSuccessScreen("cart-flow1"); },
+      "instructivo-flow2": renderInstructivoFlow2,
+      "scanner-empty": renderScannerEmpty,
+      "scanner-found": renderScannerFound,
+      "scanner-added": renderScannerAdded,
+      "cart-flow2": renderCartFlow2,
+      "checkout-flow2": renderCheckoutFlow2,
+      "success-flow2": function () { return renderSuccessScreen("instructivo-flow2"); }
+    };
+
+    /**
+     * Asocia eventos interactivos de la pantalla activa.
+     *
+     * @param {HTMLElement} screenNode - Nodo raíz renderizado.
+     * @param {string} screenId - Identificador de pantalla actual.
+     * @returns {void} No retorna valor.
+     */
+    function wireScreenEvents(screenNode, screenId) {
+      screenNode.addEventListener("click", function (event) {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+          return;
+        }
+
+        if (target.dataset.action === "back") {
+          goBack();
+          return;
+        }
+
+        const goScreen = target.dataset.go;
+        if (goScreen) {
+          if (goScreen === "cart-flow1" || goScreen === "instructivo-flow2") {
+            resetAllState();
+          }
+          navigate(goScreen, "forward");
+          return;
+        }
+
+        if (screenId === "modal-flow1" && target.dataset.rec) {
+          const index = Number(target.dataset.index);
+          const current = recommendationQtys[index] || 0;
+          if (target.dataset.rec === "plus") {
+            recommendationQtys[index] = current + 1;
+          } else {
+            recommendationQtys[index] = Math.max(0, current - 1);
+          }
+          navigate("modal-flow1", "forward");
+        }
+      });
+
+      if (screenId === "scanner-empty") {
+        void startScannerEmptyScreen(screenNode).catch(function (err) {
+          const statusEl = screenNode.querySelector("#scanner-status-msg");
+          if (statusEl) {
+            statusEl.textContent = "Error al iniciar el escáner: " + (err && err.message ? err.message : String(err));
+          }
+        });
+      }
+    }
+
+    navigate("home");
+  </script>
+</body>
+</html>
