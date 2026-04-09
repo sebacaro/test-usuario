@@ -4,15 +4,16 @@ Sitio estático (un solo `index.html`). Publicación sugerida: **GitHub Pages** 
 
 ## Publicar en GitHub Pages
 
-1. Crea un repositorio vacío en GitHub (sin README si ya vas a hacer push desde aquí).
-2. En la raíz de este proyecto:
+Este repo incluye un workflow (`.github/workflows/deploy-pages.yml`) que sube el sitio estático.
 
-   ```bash
-   git remote add origin https://github.com/TU_USUARIO/TU_REPO.git
-   git branch -M main
-   git push -u origin main
-   ```
+1. Sube los cambios: `git push origin main`
+2. En GitHub, abre el repo → **Settings → Pages**.
+3. En **Build and deployment → Source**, elige **GitHub Actions** (no “Deploy from a branch” si vas a usar el workflow).
+4. Espera a que termine el workflow en la pestaña **Actions** (1–2 minutos la primera vez).
+5. La URL será: `https://TU_USUARIO.github.io/NOMBRE_DEL_REPO/`
 
-3. En GitHub: **Settings → Pages → Build and deployment → Source**: *Deploy from a branch*.
-4. **Branch**: `main`, carpeta **`/ (root)`**, Guardar.
-5. La app quedará en `https://TU_USUARIO.github.io/TU_REPO/` (HTTPS; apto para probar cámara en iPhone).
+Si ves **404 “There isn’t a GitHub Pages site here”**, casi siempre falta el paso 2–3 o el workflow aún no ha terminado.
+
+### Opción sin Actions
+
+En **Settings → Pages**, fuente **Deploy from a branch**, rama **`main`**, carpeta **`/ (root)`**, Guardar.
