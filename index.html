@@ -907,7 +907,7 @@
     };
 
     const SCAN_PRODUCT = {
-      name: "Pepsi 591cc",
+      name: "Bebida variedades",
       price: 1100,
       qty: 1,
       color: "#004B93",
@@ -1413,7 +1413,7 @@
               "<article class='product-card' style='margin-bottom:12px;'>" +
                 "<img class='scanner-modal-thumb' src='" + SCAN_PRODUCT.image + "' alt='' decoding='async' style='object-position:" + (SCAN_PRODUCT.imagePosition || "12% center") + "' />" +
                 "<div class='product-info'>" +
-                  "<div class='product-name'>Pepsi 591cc</div>" +
+                  "<div class='product-name'>" + SCAN_PRODUCT.name + "</div>" +
                   "<div class='product-price'>" + formatPrice(SCAN_PRODUCT.price) + "</div>" +
                   "<div id='scanner-modal-code-line' class='scan-code-hint'></div>" +
                 "</div>" +
@@ -1478,7 +1478,7 @@
     }
 
     /**
-     * Muestra el modal de Pepsi sobre la vista de cámara (sin cambiar de pantalla).
+     * Muestra el modal de producto escaneado sobre la vista de cámara (sin cambiar de pantalla).
      *
      * @param {HTMLElement} screenNode - Pantalla scanner-empty.
      * @returns {void}
@@ -1573,7 +1573,7 @@
       }
 
       /**
-       * Cierra escaneo y avanza al producto encontrado (prototipo: siempre Pepsi).
+       * Cierra escaneo y muestra el producto detectado (bebida variedades).
        *
        * @param {string} rawValue - Valor decodificado del código.
        * @returns {void}
