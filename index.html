@@ -924,6 +924,77 @@
       from { transform: translateY(100%); }
       to { transform: translateY(0); }
     }
+
+    .flow-loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      background: rgba(26, 26, 46, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      box-sizing: border-box;
+      pointer-events: auto;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+    }
+
+    .flow-loading-card {
+      text-align: center;
+      max-width: 300px;
+      width: 100%;
+    }
+
+    .flow-loading-spinner {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 18px;
+      flex-shrink: 0;
+      border: 4px solid rgba(255, 255, 255, 0.25);
+      border-top-color: #ffd100;
+      border-radius: 50%;
+      animation: flowLoadingSpin 0.75s linear infinite;
+      -webkit-animation: flowLoadingSpin 0.75s linear infinite;
+    }
+
+    @keyframes flowLoadingSpin {
+      to {
+        transform: rotate(360deg);
+        -webkit-transform: rotate(360deg);
+      }
+    }
+
+    .flow-loading-percent {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 14px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .flow-loading-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .flow-loading-bar-fill {
+      height: 100%;
+      width: 1%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--pronto-blue), var(--copec-yellow));
+    }
+
+    .flow-loading-label {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.78);
+      margin: 0;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -1197,6 +1268,94 @@
     }
 
     /**
+     * Muestra overlay con spinner y progreso 1–100% antes de ejecutar el callback (entrada a un flujo desde Home).
+     *
+     * @param {function(): void} onComplete - Se ejecuta al llegar al 100%.
+     * @returns {void}
+     */
+    function showFlowLoadingThen(onComplete) {
+      var done = typeof onComplete === "function" ? onComplete : function () {};
+      var overlay = document.createElement("div");
+      overlay.className = "flow-loading-overlay";
+      overlay.style.cssText =
+        "position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;" +
+        "background:rgba(26,26,46,0.92);box-sizing:border-box;padding:24px;";
+      overlay.setAttribute("role", "status");
+      overlay.setAttribute("aria-live", "polite");
+      overlay.setAttribute("aria-busy", "true");
+      overlay.innerHTML =
+        "<div class='flow-loading-card'>" +
+          "<div class='flow-loading-spinner' aria-hidden='true'></div>" +
+          "<div class='flow-loading-percent' id='flow-loading-pct'>1%</div>" +
+          "<div class='flow-loading-bar' aria-hidden='true'><div class='flow-loading-bar-fill' id='flow-loading-fill'></div></div>" +
+          "<p class='flow-loading-label'>Cargando flujo…</p>" +
+        "</div>";
+      document.body.appendChild(overlay);
+      var pctEl = overlay.querySelector("#flow-loading-pct");
+      var fillEl = overlay.querySelector("#flow-loading-fill");
+      var durationMs = 1450;
+      var start = performance.now();
+      function frame(now) {
+        var elapsed = now - start;
+        var t = Math.min(1, elapsed / durationMs);
+        var eased = 1 - Math.pow(1 - t, 2.4);
+        var pct = Math.max(1, Math.min(100, Math.round(1 + eased * 99)));
+        if (pctEl) {
+          pctEl.textContent = pct + "%";
+        }
+        if (fillEl) {
+          fillEl.style.width = pct + "%";
+        }
+        if (t < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          if (pctEl) {
+            pctEl.textContent = "100%";
+          }
+          if (fillEl) {
+            fillEl.style.width = "100%";
+          }
+          setTimeout(function () {
+            if (overlay.parentNode) {
+              overlay.parentNode.removeChild(overlay);
+            }
+            done();
+          }, 100);
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    /**
+     * Intercepta clics en tarjetas de flujo desde Home (fase capture) para mostrar carga antes de navegar.
+     *
+     * @param {MouseEvent} event - Evento de clic.
+     * @returns {void}
+     */
+    function handleHomeFlowCardClickCapture(event) {
+      if (currentScreen !== "home") {
+        return;
+      }
+      var rawTarget = event.target;
+      if (!(rawTarget instanceof Element)) {
+        return;
+      }
+      var flowBtn = rawTarget.closest("button.flow-card");
+      if (!flowBtn || !flowBtn.dataset.go || !appContainer.contains(flowBtn)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      var dest = flowBtn.dataset.go;
+      if (dest === "cart-flow1" || dest === "instructivo-flow2") {
+        resetAllState();
+      }
+      showFlowLoadingThen(function () {
+        navigate(dest, "forward");
+      });
+    }
+
+    /**
      * Renderiza la pantalla de éxito reutilizable.
      *
      * @param {string} nextScreen - Pantalla de destino al continuar.
@@ -1301,11 +1460,11 @@
           "<div class='home-screen'>" +
             "<div class='home-logo'>COPEC</div>" +
             "<p class='home-subtitle'>App Pronto - Prototype</p>" +
-            "<button class='flow-card' data-go='cart-flow1'>" +
+            "<button type='button' class='flow-card' data-go='cart-flow1'>" +
               "<div class='flow-title'>Flujo 1: Recomendaciones</div>" +
               "<div class='flow-desc'>Carrito → Modal recomendaciones → Pago</div>" +
             "</button>" +
-            "<button class='flow-card' data-go='instructivo-flow2'>" +
+            "<button type='button' class='flow-card' data-go='instructivo-flow2'>" +
               "<div class='flow-title'>Flujo 2: Escanear producto</div>" +
               "<div class='flow-desc'>Escanear → Agregar → Pago</div>" +
             "</button>" +
@@ -1883,7 +2042,7 @@
     function wireScreenEvents(screenNode, screenId) {
       screenNode.addEventListener("click", function (event) {
         const target = event.target;
-        if (!(target instanceof HTMLElement)) {
+        if (!(target instanceof Element)) {
           return;
         }
 
@@ -1985,6 +2144,8 @@
         });
       }
     }
+
+    appContainer.addEventListener("click", handleHomeFlowCardClickCapture, true);
 
     navigate("home");
   </script>
