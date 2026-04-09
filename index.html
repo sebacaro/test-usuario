@@ -24,47 +24,34 @@
       padding: 0;
     }
 
+    html {
+      height: 100%;
+    }
+
     body {
-      min-height: 100vh;
-      background: #1a1a2e;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      min-height: 100%;
+      min-height: 100dvh;
+      margin: 0;
+      background: var(--bg-light);
       font-family: "Inter", sans-serif;
       color: var(--text-primary);
-      padding: 16px;
-    }
-
-    #device-shell {
-      width: 375px;
-      max-width: 100%;
-      height: 812px;
-      border-radius: 40px;
       overflow: hidden;
-      background: var(--bg-light);
-      position: relative;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    #status-bar {
-      height: 40px;
-      background: var(--white);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 18px;
-      font-size: 12px;
-      font-weight: 600;
-      position: relative;
-      z-index: 3;
+      -webkit-text-size-adjust: 100%;
     }
 
     #app-container {
       position: relative;
-      height: calc(100% - 40px);
+      width: 100%;
+      height: 100%;
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
       overflow: hidden;
       background: var(--bg-light);
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
     }
 
     .screen {
@@ -655,6 +642,31 @@
       line-height: 1.4;
     }
 
+    .scanner-demo-row {
+      position: relative;
+      z-index: 6;
+      text-align: center;
+      padding: 0 12px 8px;
+      pointer-events: auto;
+    }
+
+    .scanner-demo-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      color: rgba(255, 255, 255, 0.95);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      max-width: 100%;
+    }
+
+    .scanner-demo-btn:active {
+      opacity: 0.85;
+    }
+
     .scanner-cta {
       margin-top: 10px;
     }
@@ -711,13 +723,7 @@
   </style>
 </head>
 <body>
-  <div id="device-shell">
-    <div id="status-bar">
-      <span>9:41</span>
-      <span>••• 📶 🔋</span>
-    </div>
-    <div id="app-container"></div>
-  </div>
+  <div id="app-container"></div>
 
   <script>
     const CART_PRODUCT = {
@@ -1155,6 +1161,7 @@
           "</div>" +
           "<p id='scanner-status-msg' class='scan-help' style='min-height:1.3em;color:#fca5a5;'></p>" +
           "<p class='scan-help' style='margin-top:4px;'>Apunta al código de barras del producto</p>" +
+          "<div class='scanner-demo-row'><button type='button' class='scanner-demo-btn' data-action='scan-demo'>No lee el código · Continuar (demo)</button></div>" +
           "<div class='scanner-footer'>Agrega tus productos en la tienda escaneando su código...</div>" +
         "</div>"
       );
@@ -1259,7 +1266,23 @@
     }
 
     /**
-     * Inicia cámara y lectura de códigos (BarcodeDetector o html5-qrcode).
+     * Indica si conviene evitar BarcodeDetector (p. ej. Safari iOS: suele no leer EAN bien).
+     *
+     * @returns {boolean}
+     */
+    function shouldSkipNativeBarcodeDetector() {
+      const ua = navigator.userAgent || "";
+      if (/iPhone|iPad|iPod/i.test(ua)) {
+        return true;
+      }
+      if (/Safari/i.test(ua) && !/Chrome|CriOS|FxiOS/i.test(ua)) {
+        return true;
+      }
+      return false;
+    }
+
+    /**
+     * Inicia cámara y lectura: primero html5-qrcode (ZXing, mejor en iPhone); BarcodeDetector solo como respaldo.
      *
      * @param {HTMLElement} screenNode - Pantalla scanner-empty montada.
      * @returns {Promise<void>}
@@ -1305,126 +1328,29 @@
         navigate("scanner-found", "forward");
       }
 
-      if ("BarcodeDetector" in window) {
-        try {
-          let detector;
-          try {
-            detector = new BarcodeDetector({
-              formats: ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e", "qr_code"]
-            });
-          } catch (eFmt) {
-            detector = new BarcodeDetector();
-          }
-
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } }
-          });
-          if (!screenNode.isConnected) {
-            stream.getTracks().forEach(function (t) {
-              t.stop();
-            });
-            return;
-          }
-          const video = document.createElement("video");
-          video.setAttribute("playsinline", "");
-          video.setAttribute("muted", "");
-          video.muted = true;
-          video.playsInline = true;
-          video.style.cssText = "width:100%;height:100%;object-fit:cover;";
-          root.appendChild(video);
-          video.srcObject = stream;
-          await video.play();
-          if (!screenNode.isConnected) {
-            stream.getTracks().forEach(function (t) {
-              t.stop();
-            });
-            root.innerHTML = "";
-            return;
-          }
-
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d", { willReadFrequently: true });
-          let rafId = 0;
-          let stopped = false;
-          let lastDetectTs = 0;
-
-          barcodeScannerSession = {
-            stop: function () {
-              stopped = true;
-              if (rafId) {
-                cancelAnimationFrame(rafId);
-              }
-              stream.getTracks().forEach(function (t) {
-                t.stop();
-              });
-              video.srcObject = null;
-              root.innerHTML = "";
-            }
-          };
-
-          /**
-           * Procesa frames de video buscando un código de barras o QR.
-           *
-           * @returns {void}
-           */
-          function tick() {
-            if (stopped) {
-              return;
-            }
-            if (video.readyState < 2) {
-              rafId = requestAnimationFrame(tick);
-              return;
-            }
-            const n = performance.now();
-            if (n - lastDetectTs < 90) {
-              rafId = requestAnimationFrame(tick);
-              return;
-            }
-            lastDetectTs = n;
-            try {
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
-              ctx.drawImage(video, 0, 0);
-            } catch (eDraw) {
-              rafId = requestAnimationFrame(tick);
-              return;
-            }
-            detector.detect(canvas).then(function (codes) {
-              if (stopped) {
-                return;
-              }
-              if (codes && codes.length) {
-                const c = codes[0];
-                const raw = c.rawValue != null ? c.rawValue : (c.value || "");
-                if (raw) {
-                  finishScan(raw);
-                  return;
-                }
-              }
-              rafId = requestAnimationFrame(tick);
-            }).catch(function () {
-              if (!stopped) {
-                rafId = requestAnimationFrame(tick);
-              }
-            });
-          }
-
-          setStatus("");
-          tick();
-          return;
-        } catch (e1) {
-          root.innerHTML = "";
-          setStatus("Iniciando escáner alternativo…");
-        }
-      }
-
-      try {
+      /**
+       * Arranca html5-qrcode con formatos de barra y QR (prioridad en móviles).
+       *
+       * @returns {Promise<void>}
+       */
+      async function startHtml5QrcodeScan() {
         await loadHtml5QrcodeScript();
         if (!screenNode.isConnected) {
           return;
         }
         const Html5Qrcode = window.Html5Qrcode;
-        const reader = new Html5Qrcode("scanner-reader-root", { verbose: false });
+        const Fmt = window.Html5QrcodeSupportedFormats;
+        var formatsList = [];
+        if (Fmt) {
+          [Fmt.EAN_13, Fmt.EAN_8, Fmt.UPC_A, Fmt.UPC_E, Fmt.CODE_128, Fmt.CODE_39, Fmt.QR_CODE].forEach(function (code) {
+            if (typeof code === "number") {
+              formatsList.push(code);
+            }
+          });
+        }
+        const libConfig =
+          formatsList.length > 0 ? { formatsToSupport: formatsList, verbose: false } : { verbose: false };
+        const reader = new Html5Qrcode("scanner-reader-root", libConfig);
         barcodeScannerSession = {
           stop: function () {
             reader
@@ -1435,19 +1361,147 @@
               .catch(function () {});
           }
         };
+        const scanConfig = {
+          fps: 10,
+          qrbox: function (viewfinderWidth, viewfinderHeight) {
+            const w = Math.floor(Math.min(viewfinderWidth * 0.92, 340));
+            const h = Math.floor(Math.min(viewfinderHeight * 0.45, 260));
+            return { width: w, height: h };
+          },
+          aspectRatio: 1.777778
+        };
         await reader.start(
           { facingMode: "environment" },
-          { fps: 8, qrbox: { width: 260, height: 170 } },
+          scanConfig,
           function (decodedText) {
             finishScan(decodedText);
           },
           function () {}
         );
         setStatus("");
-      } catch (e2) {
+      }
+
+      /**
+       * Respaldo: BarcodeDetector (mejor en Chrome escritorio; en iOS suele fallar con EAN).
+       *
+       * @returns {Promise<void>}
+       */
+      async function startNativeBarcodeScan() {
+        if (!("BarcodeDetector" in window)) {
+          throw new Error("BarcodeDetector no disponible");
+        }
+        let detector;
+        try {
+          detector = new BarcodeDetector({
+            formats: ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e", "qr_code"]
+          });
+        } catch (eFmt) {
+          detector = new BarcodeDetector();
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } }
+        });
+        if (!screenNode.isConnected) {
+          stream.getTracks().forEach(function (t) {
+            t.stop();
+          });
+          return;
+        }
+        const video = document.createElement("video");
+        video.setAttribute("playsinline", "");
+        video.setAttribute("muted", "");
+        video.muted = true;
+        video.playsInline = true;
+        video.style.cssText = "width:100%;height:100%;object-fit:cover;";
+        root.appendChild(video);
+        video.srcObject = stream;
+        await video.play();
+        if (!screenNode.isConnected) {
+          stream.getTracks().forEach(function (t) {
+            t.stop();
+          });
+          root.innerHTML = "";
+          return;
+        }
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        let rafId = 0;
+        let stopped = false;
+        let lastDetectTs = 0;
+        barcodeScannerSession = {
+          stop: function () {
+            stopped = true;
+            if (rafId) {
+              cancelAnimationFrame(rafId);
+            }
+            stream.getTracks().forEach(function (t) {
+              t.stop();
+            });
+            video.srcObject = null;
+            root.innerHTML = "";
+          }
+        };
+        function tick() {
+          if (stopped) {
+            return;
+          }
+          if (video.readyState < 2) {
+            rafId = requestAnimationFrame(tick);
+            return;
+          }
+          const n = performance.now();
+          if (n - lastDetectTs < 90) {
+            rafId = requestAnimationFrame(tick);
+            return;
+          }
+          lastDetectTs = n;
+          try {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+          } catch (eDraw) {
+            rafId = requestAnimationFrame(tick);
+            return;
+          }
+          detector.detect(canvas).then(function (codes) {
+            if (stopped) {
+              return;
+            }
+            if (codes && codes.length) {
+              const c = codes[0];
+              const raw = c.rawValue != null ? c.rawValue : (c.value || "");
+              if (raw) {
+                finishScan(raw);
+                return;
+              }
+            }
+            rafId = requestAnimationFrame(tick);
+          }).catch(function () {
+            if (!stopped) {
+              rafId = requestAnimationFrame(tick);
+            }
+          });
+        }
+        setStatus("");
+        tick();
+      }
+
+      try {
+        await startHtml5QrcodeScan();
+      } catch (eHtml) {
+        root.innerHTML = "";
+        if (!shouldSkipNativeBarcodeDetector() && "BarcodeDetector" in window) {
+          try {
+            setStatus("Probando lector nativo…");
+            await startNativeBarcodeScan();
+            return;
+          } catch (eNat) {
+            /* continúa al mensaje final */
+          }
+        }
         barcodeScannerSession = null;
         setStatus(
-          "No se pudo usar la cámara. Permite el acceso o abre la página por HTTPS o http://127.0.0.1 (file:// suele bloquear la cámara)."
+          "No se pudo leer el código. Usa el botón de abajo para continuar en demo, o recarga y permite la cámara (HTTPS)."
         );
       }
     }
@@ -1483,6 +1537,16 @@
 
         if (target.dataset.action === "back") {
           goBack();
+          return;
+        }
+
+        if (target.dataset.action === "scan-demo") {
+          if (!scanResultHandled) {
+            scanResultHandled = true;
+            lastScannedBarcode = "demo";
+            stopBarcodeScanner();
+            navigate("scanner-found", "forward");
+          }
           return;
         }
 
