@@ -1377,22 +1377,6 @@
     }
 
     /**
-     * Indica si conviene evitar BarcodeDetector (p. ej. Safari iOS: suele no leer EAN bien).
-     *
-     * @returns {boolean}
-     */
-    function shouldSkipNativeBarcodeDetector() {
-      const ua = navigator.userAgent || "";
-      if (/iPhone|iPad|iPod/i.test(ua)) {
-        return true;
-      }
-      if (/Safari/i.test(ua) && !/Chrome|CriOS|FxiOS/i.test(ua)) {
-        return true;
-      }
-      return false;
-    }
-
-    /**
      * Inicia cámara y lectura: primero html5-qrcode (ZXing, mejor en iPhone); BarcodeDetector solo como respaldo.
      *
      * @param {HTMLElement} screenNode - Pantalla scanner-empty montada.
@@ -1483,39 +1467,51 @@
           finishScan(decodedText);
         };
         const onFail = function () {};
-        var cameraConfig = { facingMode: "environment" };
         try {
-          const devices = await Html5Qrcode.getCameras();
-          if (devices && devices.length > 0) {
-            var chosen = devices[devices.length - 1];
-            var li;
-            for (li = 0; li < devices.length; li++) {
-              var lab = (devices[li].label || "").toLowerCase();
-              if (lab.indexOf("back") >= 0 || lab.indexOf("rear") >= 0 || lab.indexOf("trasera") >= 0 || lab.indexOf("environment") >= 0) {
-                chosen = devices[li];
-                break;
-              }
-            }
-            cameraConfig = { deviceId: { exact: chosen.id } };
-          }
-        } catch (gcErr) {
-          cameraConfig = { facingMode: "environment" };
-        }
-        try {
-          await reader.start(cameraConfig, scanConfig, onDecoded, onFail);
-        } catch (eFirst) {
+          await reader.start({ facingMode: "environment" }, scanConfig, onDecoded, onFail);
+        } catch (eEnv) {
           try {
             await reader.clear();
           } catch (c0) {}
-          try {
-            await reader.start({ facingMode: "environment" }, scanConfig, onDecoded, onFail);
-          } catch (eSecond) {
-            try {
-              await reader.clear();
-            } catch (c1) {}
-            await reader.start({ facingMode: "user" }, scanConfig, onDecoded, onFail);
-          }
+          await reader.start({ facingMode: "user" }, scanConfig, onDecoded, onFail);
         }
+        setStatus("");
+      }
+
+      /**
+       * Solo muestra la cámara (sin decodificar) si el lector falla — para que siempre haya vista previa.
+       *
+       * @returns {Promise<void>}
+       */
+      async function startCameraPreviewOnly() {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } }
+        });
+        if (!screenNode.isConnected) {
+          stream.getTracks().forEach(function (t) {
+            t.stop();
+          });
+          return;
+        }
+        const video = document.createElement("video");
+        video.setAttribute("playsinline", "");
+        video.setAttribute("muted", "");
+        video.muted = true;
+        video.playsInline = true;
+        video.style.cssText = "width:100%;height:100%;object-fit:cover;";
+        root.appendChild(video);
+        video.srcObject = stream;
+        await video.play();
+        html5ReaderInstance = null;
+        barcodeScannerSession = {
+          stop: function () {
+            stream.getTracks().forEach(function (t) {
+              t.stop();
+            });
+            video.srcObject = null;
+            root.innerHTML = "";
+          }
+        };
         setStatus("");
       }
 
@@ -1627,20 +1623,24 @@
       try {
         await startHtml5QrcodeScan();
       } catch (eHtml) {
+        try {
+          stopBarcodeScanner();
+        } catch (eStop) {}
         root.innerHTML = "";
-        if (!shouldSkipNativeBarcodeDetector() && "BarcodeDetector" in window) {
-          try {
-            setStatus("Probando lector nativo…");
+        try {
+          if ("BarcodeDetector" in window) {
             await startNativeBarcodeScan();
             return;
-          } catch (eNat) {
-            /* continúa al mensaje final */
           }
+        } catch (eNat) {
+          /* siguiente fallback */
         }
-        barcodeScannerSession = null;
-        setStatus(
-          "No se pudo leer el código. Usa el botón de abajo para continuar en demo, o recarga y permite la cámara (HTTPS)."
-        );
+        try {
+          await startCameraPreviewOnly();
+        } catch (eCam) {
+          barcodeScannerSession = null;
+          setStatus("");
+        }
       }
     }
 
